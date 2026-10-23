@@ -330,7 +330,18 @@ export function createServer() {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT) || 3000;
-  createServer().listen(port, () => {
+  const srv = createServer();
+  srv.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`\n[WEAVE] Port ${port} is already in use by another process.`);
+      console.error(`[WEAVE] You can specify a different port:`);
+      console.error(`  PowerShell: $env:PORT=3001; npm start`);
+      console.error(`  CMD:        set PORT=3001 && npm start\n`);
+      process.exit(1);
+    }
+    throw err;
+  });
+  srv.listen(port, () => {
     console.log(`WEAVE ${VERSION} on http://localhost:${port} (default mode: ${defaultMode()})`);
   });
 }
