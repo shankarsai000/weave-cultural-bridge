@@ -222,8 +222,148 @@ export function normalizeEntities(payload) {
     const affinity = e.affinity ?? e.query?.affinity;
     if (typeof affinity === "number") upstream.affinity = affinity;
     if (typeof e.popularity === "number") upstream.popularity = e.popularity;
-    return { id, name: e.name, type: typeof e.type === "string" ? e.type : undefined, source: "qloo-live", upstream };
+    return {
+      id,
+      name: e.name,
+      type: typeof e.type === "string" ? e.type : undefined,
+      source: "qloo-live",
+      upstream,
+      tags: normalizeTags(e.tags),
+    };
   });
+}
+
+// Qloo entities carry tags as [{ id, name, type }]. Anything without a string id and name is dropped.
+export function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags
+    .map((t) => ({ id: t?.id ?? t?.tag_id, name: t?.name, type: typeof t?.type === "string" ? t.type : undefined }))
+    .filter((t) => typeof t.id === "string" && t.id && typeof t.name === "string" && t.name)
+    .slice(0, 40);
+}
+
+// Tag bridges: a tag carried by results in more than one community's list.
+// prevalence(t,c) = share of community c's results that carry tag t (observed, not inferred).
+// tagBridgeScore = 0.70 * coverage + 0.30 * mean prevalence over covering communities. WEAVE math, not a Qloo score.
+export function computeTagBridges(communityLists, max = 15) {
+  const ids = Object.keys(communityLists);
+  const rows = new Map();
+  for (const cid of ids) {
+    const list = communityLists[cid];
+    if (!list.length) continue;
+    const counts = new Map();
+    for (const e of list) {
+      for (const t of new Map((e.tags ?? []).map((x) => [x.id, x])).values()) {
+        const hit = counts.get(t.id) ?? { tag: t, entityIds: [] };
+        hit.entityIds.push(e.id);
+        counts.set(t.id, hit);
+      }
+    }
+    for (const [tid, { tag, entityIds }] of counts) {
+      const row = rows.get(tid) ?? { id: tid, name: tag.name, type: tag.type, prevalence: {}, supportingEntityIds: {} };
+      row.prevalence[cid] = entityIds.length / list.length;
+      row.supportingEntityIds[cid] = entityIds.slice(0, 5);
+      rows.set(tid, row);
+    }
+  }
+  return [...rows.values()]
+    .map((r) => {
+      const covered = ids.filter((c) => r.prevalence[c] !== undefined);
+      const meanPrevalence = sumBy(covered, (c) => r.prevalence[c]) / covered.length;
+      const coverageRatio = covered.length / ids.length;
+      return {
+        ...r,
+        communitiesCovered: covered,
+        coverageRatio: round4(coverageRatio),
+        meanPrevalence: round4(meanPrevalence),
+        tagBridgeScore: round4(0.7 * coverageRatio + 0.3 * meanPrevalence),
+      };
+    })
+    .filter((r) => r.communitiesCovered.length > 1)
+    .sort((a, b) => b.tagBridgeScore - a.tagBridgeScore || byIdAsc(a.id, b.id))
+    .slice(0, max);
+}
+
+// Taste Ladders: When two communities have disparate tastes, WEAVE computes a 3-rung transition trajectory:
+// Rung 1: Signature Anchor of Community 1
+// Rung 2: Stepping Stone (entity with optimal harmonic balance between both communities' tag spheres)
+// Rung 3: Signature Anchor of Community 2
+export function computeTasteLadders(communityLists, communityNames = {}) {
+  const cids = Object.keys(communityLists);
+  if (cids.length < 2) return [];
+
+  // Tag frequency maps per community
+  const tagFreq = {};
+  for (const cid of cids) {
+    const list = communityLists[cid] || [];
+    const counts = {};
+    for (const e of list) {
+      for (const t of e.tags ?? []) {
+        counts[t.name] = (counts[t.name] || 0) + 1;
+      }
+    }
+    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+    tagFreq[cid] = Object.fromEntries(Object.entries(counts).map(([k, v]) => [k, v / total]));
+  }
+
+  const ladders = [];
+  for (let i = 0; i < cids.length; i++) {
+    for (let j = i + 1; j < cids.length; j++) {
+      const c1 = cids[i];
+      const c2 = cids[j];
+      const l1 = communityLists[c1] || [];
+      const l2 = communityLists[c2] || [];
+      const combined = [...new Map([...l1, ...l2].map((e) => [e.id, e])).values()];
+      if (!combined.length) continue;
+
+      const scored = combined.map((e) => {
+        const tags = (e.tags ?? []).map((t) => t.name);
+        const s1 = tags.reduce((acc, t) => acc + (tagFreq[c1][t] || 0), 0);
+        const s2 = tags.reduce((acc, t) => acc + (tagFreq[c2][t] || 0), 0);
+        const balance = s1 > 0 && s2 > 0 ? (2 * s1 * s2) / (s1 + s2) : 0;
+        const sharedTags = tags.filter((t) => (tagFreq[c1][t] || 0) > 0 && (tagFreq[c2][t] || 0) > 0);
+        return {
+          id: e.id,
+          name: e.name,
+          source: e.source,
+          s1,
+          s2,
+          balance,
+          sharedTags: sharedTags.slice(0, 5),
+        };
+      });
+
+      // Best signature anchor for c1 (high s1, low s2)
+      const anchor1 = [...scored].sort((a, b) => b.s1 - a.s1 || a.s2 - b.s2)[0];
+      // Best signature anchor for c2 (high s2, low s1)
+      const anchor2 = [...scored].sort((a, b) => b.s2 - a.s2 || a.s1 - b.s1)[0];
+      // Best stepping stone (highest harmonic balance)
+      const steppingStones = [...scored]
+        .filter((x) => x.id !== anchor1?.id && x.id !== anchor2?.id)
+        .sort((a, b) => b.balance - a.balance || b.sharedTags.length - a.sharedTags.length);
+      const steppingStone = steppingStones[0] || scored[0];
+
+      if (anchor1 && anchor2 && steppingStone) {
+        ladders.push({
+          id: `ladder:${c1}:${c2}`,
+          fromCommunity: { id: c1, name: communityNames[c1] || c1 },
+          toCommunity: { id: c2, name: communityNames[c2] || c2 },
+          rungs: [
+            { rung: 1, purpose: "signature_anchor", entity: { id: anchor1.id, name: anchor1.name, source: anchor1.source } },
+            {
+              rung: 2,
+              purpose: "stepping_stone",
+              entity: { id: steppingStone.id, name: steppingStone.name, source: steppingStone.source },
+              connectingTags: steppingStone.sharedTags,
+              balanceScore: round4(steppingStone.balance),
+            },
+            { rung: 3, purpose: "signature_anchor", entity: { id: anchor2.id, name: anchor2.name, source: anchor2.source } },
+          ],
+        });
+      }
+    }
+  }
+  return ladders;
 }
 
 // communityLists: { [communityId]: entity[] } in upstream order (index 0 = rank 1).
@@ -327,6 +467,9 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
   const lists = Object.fromEntries(ok.map((e) => [e.c.id, e.entities]));
   const successIds = ok.map((e) => e.c.id);
   const candidates = scoreCandidates(lists, excluded);
+  const tagBridges = computeTagBridges(
+    Object.fromEntries(Object.entries(lists).map(([cid, l]) => [cid, l.filter((e) => !excluded.has(e.id))])),
+  );
   const status = ok.length === explored.length ? "complete" : ok.length ? "partial" : "failed";
   const warnings = [];
   if (status !== "complete") {
@@ -335,6 +478,8 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
   if (!candidates.some((c) => c.isBridge)) {
     warnings.push("No candidate was returned for more than one community in this query set. No bridge was invented.");
   }
+  const communityNames = Object.fromEntries(communities.map((c) => [c.id, c.name]));
+  const tasteLadders = computeTasteLadders(lists, communityNames);
   return {
     analysisId,
     mode,
@@ -355,6 +500,7 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
         rank: i + 1,
         source: x.source,
         upstream: x.upstream,
+        tags: (x.tags ?? []).slice(0, 8),
       })),
     })),
     candidates: candidates.map((c) => ({
@@ -364,8 +510,12 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
       bridgeScore: round4(c.bridgeScore),
     })),
     recommendedIds: selectPortfolio(candidates, successIds, RECOMMENDED),
+    tagBridges,
+    tasteLadders,
     scoring: {
       formula: "bridgeScore = 0.70 * coverage + 0.30 * rankQualityMean",
+      tagFormula: "tagBridgeScore = 0.70 * coverage + 0.30 * meanPrevalence (share of each community's results carrying the tag)",
+      ladderNote: "Taste Ladders: 3-rung transition trajectory linking distinct communities via harmonic tag balance.",
       coverageBasis: successIds.length,
       note: "WEAVE triage score from observed ranks. Not a Qloo score or an attendance prediction.",
     },
@@ -374,6 +524,8 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
       { step: "resolve-seeds", status: "complete" },
       { step: "qloo-exploration", status },
       { step: "bridge-ranking", status: "complete" },
+      { step: "tag-bridges", status: "complete", count: tagBridges.length },
+      { step: "taste-ladders", status: "complete", count: tasteLadders.length },
     ],
   };
 }
@@ -679,7 +831,14 @@ export const DEMO_PRESET = [
 // Stand-in for Qloo Insights: ranks pool entities by shared tags with the seeds, skipping seeds and exclusions.
 export function createDemoAdapter(pool = DEMO_POOL) {
   const byId = new Map(pool.map((e) => [e.id, e]));
-  const out = (e) => ({ id: e.id, name: e.name, type: e.type, source: "demo-fixture", upstream: {} });
+  const out = (e) => ({
+    id: e.id,
+    name: e.name,
+    type: e.type,
+    source: "demo-fixture",
+    upstream: {},
+    tags: e.tags.map((t) => ({ id: `demo-tag:${t}`, name: t, type: "demo-tag" })),
+  });
   return {
     async searchEntities({ query = "", limit = 10 } = {}) {
       const q = String(query).trim().toLowerCase();

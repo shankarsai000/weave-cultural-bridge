@@ -110,3 +110,25 @@ test("live mode rejects placeholder seeds and demo provenance", () => {
   const seeds = [{ id: "REPLACE_WITH_ID", name: "x" }, { id: "real-id-1", name: "y", provenance: "demo-fixture" }];
   assert.throws(() => core.validateCommunities([{ id: "a", name: "A", seeds }, { id: "b", name: "B", seeds }], "live"), { code: "VALIDATION_FAILED" });
 });
+
+test("computeTasteLadders builds 3-rung trajectory between distinct communities", () => {
+  const t = (name) => ({ id: `tag:${name}`, name });
+  const listA = [
+    { id: "a1", name: "Synth J-Pop", tags: [t("anime"), t("synth"), t("electronic")] },
+    { id: "a2", name: "Ambient Chill", tags: [t("electronic"), t("atmospheric"), t("chill")] },
+  ];
+  const listB = [
+    { id: "b1", name: "Acoustic Folk", tags: [t("folk"), t("acoustic"), t("organic")] },
+    { id: "b2", name: "Indie Soundscapes", tags: [t("indie"), t("atmospheric"), t("chill"), t("folk")] },
+  ];
+  const ladders = core.computeTasteLadders({ "comm-a": listA, "comm-b": listB }, { "comm-a": "Anime", "comm-b": "Folk" });
+  assert.equal(ladders.length, 1);
+  const ladder = ladders[0];
+  assert.equal(ladder.rungs.length, 3);
+  assert.equal(ladder.rungs[0].purpose, "signature_anchor");
+  assert.equal(ladder.rungs[1].purpose, "stepping_stone");
+  assert.equal(ladder.rungs[2].purpose, "signature_anchor");
+  // The stepping stone should pick an entity that balances tags between the two
+  assert.ok(ladder.rungs[1].connectingTags.length > 0);
+});
+
