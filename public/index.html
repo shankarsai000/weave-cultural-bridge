@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WEAVE · Cultural Bridge Engine</title>
+<style>
+:root{--bg:#0c0e13;--panel:#151923;--line:#262c3a;--text:#eef1f7;--muted:#9ba4b6;--violet:#8f7ff7;--amber:#f5b84b;--teal:#5eead4;--ok:#6ee7a8;--bad:#fca5a5;color-scheme:dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 80% -10%,#1d1846 0%,transparent 60%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px;display:grid;gap:16px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.wordmark{font-size:34px;font-weight:800;letter-spacing:.18em;background:linear-gradient(90deg,var(--violet),var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{margin:2px 0 0;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+h2{font-size:16px;margin:0 0 12px;letter-spacing:.02em}
+h3{font-size:15px;margin:0 0 6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.field{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+input,select,button{font:inherit;color:var(--text);background:#0e1119;border:1px solid #3a4258;border-radius:10px;padding:7px 10px;min-width:0}
+button{cursor:pointer}
+button.primary{background:var(--violet);border-color:var(--violet);color:#0c0e13;font-weight:700}
+button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.community{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #3a4258;border-radius:999px;padding:2px 10px;font-size:13px;background:#0e1119}
+.chip.bridge{border-color:var(--amber);color:var(--amber)}
+.chip.recognition{border-color:var(--violet);color:var(--violet)}
+.chip.co-creation{border-color:var(--teal);color:var(--teal)}
+.chip.break{color:var(--muted)}
+.x{border:0;background:none;padding:0;color:var(--muted)}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted)}
+.pill.demo{border-color:var(--amber);color:var(--amber)}
+.pill.ok{border-color:var(--ok);color:var(--ok)}
+.pill.bad{border-color:var(--bad);color:var(--bad)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.muted{color:var(--muted)}
+.err{color:var(--bad);margin:4px 0}
+.warn{color:var(--amber);margin:4px 0}
+.alert{border:1px solid var(--bad);color:#ffe4e4;border-radius:12px;padding:10px 12px}
+svg{width:100%;height:auto;display:block;margin-top:4px}
+svg text{fill:var(--text);font-size:12.5px}
+.comm{fill:#1f1a40;stroke:var(--violet);stroke-width:2}
+.node{cursor:pointer}
+.node circle{fill:#0e1119;stroke:var(--teal);stroke-width:2}
+.node.picked circle{fill:var(--teal)}
+.node.focus circle{stroke:var(--amber);stroke-width:3}
+.edge{stroke:#3a4258;stroke-width:1.5}
+.edge-bridge{stroke:var(--amber);stroke-width:2.2;opacity:.85}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.evidence{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;background:#11151f}
+.evidence p{margin:4px 0}
+.bar{display:flex;height:30px;border-radius:10px;overflow:hidden;border:1px solid var(--line);margin-bottom:12px}
+.seg{height:100%}
+.seg.bridge{background:var(--amber)}
+.seg.recognition{background:var(--violet)}
+.seg.co-creation{background:var(--teal)}
+.seg.break{background:#3a4258}
+.seg.buffer{background:repeating-linear-gradient(45deg,transparent 0 6px,#2a3042 6px 12px)}
+.timeline{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.seg-row{display:grid;grid-template-columns:150px 1fr auto auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px}
+.seg-row input{width:90px}
+.seg-row small{grid-column:1/-1}
+pre{white-space:pre-wrap;overflow-x:auto;background:#0e1119;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12px;max-height:280px}
+.baseline{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+.search{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.search input{flex:1;min-width:140px}
+.results{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.results li{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:14px}
+.toggle{display:inline-flex;border:1px solid #3a4258;border-radius:10px;overflow:hidden}
+.toggle button{border:0;border-radius:0;background:#0e1119}
+.toggle button[aria-pressed="true"]{background:var(--violet);color:#0c0e13;font-weight:700}
+.notice{border:1px solid var(--amber);color:#ffe9b3;border-radius:12px;padding:10px 12px}
+.inspector{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin:12px 0}
+.inspector p{margin:4px 0}
+.exports pre{margin-top:10px}
+@media (max-width:640px){.seg-row{grid-template-columns:1fr auto}.wordmark{font-size:28px}}
+@media (prefers-reduced-motion:no-preference){.edge-bridge{transition:opacity .2s}}
+</style>
+</head>
+<body>
+<main id="app"><noscript>WEAVE needs JavaScript to run the demo.</noscript></main>
+<script type="module">
+// WEAVE core. Pure and dependency-free, so one copy runs in Node (server, tests) and in the browser build.
+// Owns request validation, Qloo result normalization, bridge scoring, portfolio selection, plan compilation
+// and deterministic validation. No LLM math lives here.
+
+export const LIMITS = {
+  communities: [2, 4],
+  seeds: [2, 5],
+  selected: [1, 10],
+  segments: 20,
+  duration: [30, 480],
+  maxSegment: [5, 60],
+  budget: [0, 10000000],
+  capacity: [1, 10000],
+};
+export const CURRENCIES = ["INR", "USD"];
+export const NOVELTY = ["balanced", "familiar-first", "adventurous"];
+export const RECOMMENDED = 6;
+// Placeholder estimates. Every output labels them as assumptions; organizers replace them with their own figures.
+export const COST_ASSUMPTIONS = { recognition: 1500, bridge: 2500, "co-creation": 3000, break: 500 };
+
+export class WeaveError extends Error {
+  constructor(status, code, message, retryable = false) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.retryable = retryable;
+  }
+}
+
+const fail = (message) => {
+  throw new WeaveError(400, "VALIDATION_FAILED", message);
+};
+const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+const round4 = (n) => Math.round(n * 10000) / 10000;
+const sumBy = (xs, f) => xs.reduce((s, x) => s + f(x), 0);
+const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
+const byIdAsc = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+function text(v, name, max, required = true) {
+  if (v === undefined || v === null || v === "") {
+    if (required) fail(`${name} is required`);
+    return "";
+  }
+  if (typeof v !== "string") fail(`${name} must be text`);
+  const t = v.trim();
+  if (required && !t) fail(`${name} is required`);
+  if (t.length > max) fail(`${name} must be at most ${max} characters`);
+  return t;
+}
+
+function num(v, name, [min, max]) {
+  if (typeof v !== "number" || !Number.isFinite(v) || v < min || v > max) {
+    fail(`${name} must be a number from ${min} to ${max}`);
+  }
+  return v;
+}
+
+function int(v, name, range) {
+  if (!Number.isInteger(v)) fail(`${name} must be a whole number`);
+  return num(v, name, range);
+}
+
+function choice(v, name, allowed) {
+  if (!allowed.includes(v)) fail(`${name} must be one of: ${allowed.join(", ")}`);
+  return v;
+}
+
+export function validateBrief(b) {
+  if (!isObj(b)) fail("brief must be an object");
+  const excluded = b.excludedEntityIds ?? [];
+  const notes = b.accessibilityNotes ?? [];
+  if (!Array.isArray(excluded) || excluded.length > 50) fail("excludedEntityIds must be a list of up to 50 IDs");
+  if (!Array.isArray(notes) || notes.length > 10) fail("accessibilityNotes must be a list of up to 10 notes");
+  return {
+    name: text(b.name, "brief.name", 100),
+    locationLabel: text(b.locationLabel, "brief.locationLabel", 120, false),
+    durationMinutes: int(b.durationMinutes, "brief.durationMinutes", LIMITS.duration),
+    maxSegmentMinutes: int(b.maxSegmentMinutes ?? 30, "brief.maxSegmentMinutes", LIMITS.maxSegment),
+    budgetAmount: num(b.budgetAmount, "brief.budgetAmount", LIMITS.budget),
+    currency: choice(b.currency, "brief.currency", CURRENCIES),
+    capacity: int(b.capacity, "brief.capacity", LIMITS.capacity),
+    noveltyMode: choice(b.noveltyMode ?? "balanced", "brief.noveltyMode", NOVELTY),
+    excludedEntityIds: excluded.map((id) => text(id, "excludedEntityIds[]", 120)),
+    accessibilityNotes: notes.map((n) => text(n, "accessibilityNotes[]", 200)),
+  };
+}
+
+// In live mode, seeds must be confirmed Qloo IDs. Placeholder IDs and demo provenance are rejected.
+export function validateCommunities(list, mode = "demo") {
+  if (!Array.isArray(list) || list.length < LIMITS.communities[0] || list.length > LIMITS.communities[1]) {
+    fail("communities must contain 2 to 4 profiles");
+  }
+  const provenance = mode === "live" ? "qloo-live" : "demo-fixture";
+  const seen = new Set();
+  return list.map((c) => {
+    if (!isObj(c)) fail("each community must be an object");
+    const id = text(c.id, "community.id", 64);
+    if (seen.has(id)) fail(`duplicate community id: ${id}`);
+    seen.add(id);
+    if (!Array.isArray(c.seeds) || c.seeds.length < LIMITS.seeds[0] || c.seeds.length > LIMITS.seeds[1]) {
+      fail(`community ${id} needs 2 to 5 seeds`);
+    }
+    const seeds = c.seeds.map((s) => {
+      if (!isObj(s)) fail("each seed must be an object");
+      const sid = text(s.id, "seed.id", 120);
+      if (mode === "live" && /placeholder|replace|example|QLOO_ENTITY/i.test(sid)) {
+        fail(`seed ${sid} looks like a placeholder; use a confirmed Qloo ID`);
+      }
+      if (s.provenance !== undefined && s.provenance !== provenance) {
+        fail(`seed ${sid} must have provenance ${provenance} in ${mode} mode`);
+      }
+      return { id: sid, name: text(s.name, "seed.name", 120), provenance };
+    });
+    return {
+      id,
+      name: text(c.name, "community.name", 120),
+      description: text(c.description, "community.description", 1000, false),
+      priority: int(c.priority ?? 2, "community.priority", [1, 3]),
+      seeds,
+    };
+  });
+}
+
+// Accepts the envelopes the harness reads: results.entities[] (insights) or results[] / results.entities[] (search).
+// Upstream affinity and popularity are kept as upstream values only. They are never used in WEAVE's score.
+export function normalizeEntities(payload) {
+  const r = payload?.results;
+  const list = Array.isArray(r) ? r : Array.isArray(r?.entities) ? r.entities : null;
+  if (!list) throw new WeaveError(502, "QLOO_SCHEMA_MISMATCH", "Qloo response contained no entity list");
+  return list.map((e) => {
+    const id = e?.entity_id ?? e?.id;
+    if (typeof id !== "string" || !id || typeof e.name !== "string" || !e.name) {
+      throw new WeaveError(502, "QLOO_SCHEMA_MISMATCH", "Qloo entity is missing an id or a name");
+    }
+    const upstream = {};
+    const affinity = e.affinity ?? e.query?.affinity;
+    if (typeof affinity === "number") upstream.affinity = affinity;
+    if (typeof e.popularity === "number") upstream.popularity = e.popularity;
+    return { id, name: e.name, type: typeof e.type === "string" ? e.type : undefined, source: "qloo-live", upstream };
+  });
+}
+
+// communityLists: { [communityId]: entity[] } in upstream order (index 0 = rank 1).
+// Seeds and exclusions never become candidates. A duplicate keeps its first rank.
+// bridgeScore = 0.70 * coverage + 0.30 * rankQualityMean, with rankQuality = 1 - (rank - 1) / max(K - 1, 1).
+export function scoreCandidates(communityLists, excluded = new Set()) {
+  const ids = Object.keys(communityLists);
+  const rows = new Map();
+  for (const cid of ids) {
+    const list = communityLists[cid];
+    list.forEach((e, i) => {
+      if (excluded.has(e.id)) return;
+      const row = rows.get(e.id) ?? { id: e.id, name: e.name, source: e.source, upstream: e.upstream ?? {}, ranks: {}, quality: {} };
+      if (row.ranks[cid] !== undefined) return;
+      row.ranks[cid] = i + 1;
+      row.quality[cid] = 1 - i / Math.max(list.length - 1, 1);
+      rows.set(e.id, row);
+    });
+  }
+  return [...rows.values()]
+    .map((row) => {
+      const covered = ids.filter((c) => row.ranks[c] !== undefined);
+      const coverageRatio = covered.length / ids.length;
+      const rankQualityMean = sumBy(covered, (c) => row.quality[c]) / covered.length;
+      return {
+        id: row.id,
+        name: row.name,
+        source: row.source,
+        upstream: row.upstream,
+        perCommunityRank: row.ranks,
+        communitiesCovered: covered,
+        isBridge: covered.length > 1,
+        coverageRatio,
+        rankQualityMean,
+        bridgeScore: 0.7 * coverageRatio + 0.3 * rankQualityMean,
+        evidenceRefs: covered.map((c) => `qloo-result:${c}:${row.ranks[c]}`),
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.bridgeScore - a.bridgeScore ||
+        b.coverageRatio - a.coverageRatio ||
+        b.rankQualityMean - a.rankQualityMean ||
+        byIdAsc(a.id, b.id),
+    );
+}
+
+// Two passes: bridges first (capped so every community keeps a slot), then one anchor for each uncovered community.
+export function selectPortfolio(scored, communityIds, maxSelected) {
+  const picked = [];
+  const taken = new Set();
+  const add = (c) => {
+    picked.push(c);
+    taken.add(c.id);
+  };
+  const bridgeCap = Math.max(0, maxSelected - communityIds.length);
+  for (const c of scored) {
+    if (c.isBridge && picked.filter((p) => p.isBridge).length < bridgeCap) add(c);
+  }
+  for (const cid of communityIds) {
+    if (picked.some((p) => p.perCommunityRank[cid] !== undefined)) continue;
+    const own = scored
+      .filter((c) => !taken.has(c.id) && c.perCommunityRank[cid] !== undefined)
+      .sort((a, b) => a.perCommunityRank[cid] - b.perCommunityRank[cid])[0];
+    if (own) add(own);
+  }
+  for (const c of scored) {
+    if (picked.length < maxSelected && !taken.has(c.id)) add(c);
+  }
+  return picked.map((c) => c.id);
+}
+
+// Runs one comparable query per community. A failed community is isolated and reported, never replaced.
+export async function runAnalysis({ adapter, mode, brief, communities, targetEntityType, take = 10, analysisId }) {
+  const seedIds = communities.flatMap((c) => c.seeds.map((s) => s.id));
+  const excluded = new Set([...seedIds, ...brief.excludedEntityIds]);
+  const explored = [];
+  let calls = 0;
+  for (const c of communities) {
+    try {
+      calls += 1;
+      const entities = await adapter.getRecommendations({
+        entityType: targetEntityType,
+        seedEntityIds: c.seeds.map((s) => s.id),
+        excludedEntityIds: [...excluded],
+        limit: take,
+      });
+      explored.push({ c, entities, error: null });
+    } catch (err) {
+      explored.push({
+        c,
+        entities: null,
+        error: { code: err?.code ?? "QLOO_UNAVAILABLE", retryable: Boolean(err?.retryable) },
+      });
+    }
+  }
+  const ok = explored.filter((e) => e.entities);
+  if (mode === "live" && ok.some((e) => e.entities.some((x) => x.source !== "qloo-live"))) {
+    throw new WeaveError(500, "PROVENANCE_MISMATCH", "live analysis received non-live entities");
+  }
+  const lists = Object.fromEntries(ok.map((e) => [e.c.id, e.entities]));
+  const successIds = ok.map((e) => e.c.id);
+  const candidates = scoreCandidates(lists, excluded);
+  const status = ok.length === explored.length ? "complete" : ok.length ? "partial" : "failed";
+  const warnings = [];
+  if (status !== "complete") {
+    warnings.push("Partial analysis: failed profiles are left out of coverage. Do not read this as a full comparison.");
+  }
+  if (!candidates.some((c) => c.isBridge)) {
+    warnings.push("No candidate was returned for more than one community in this query set. No bridge was invented.");
+  }
+  return {
+    analysisId,
+    mode,
+    provenance: mode === "live" ? "qloo-live" : "demo-fixture",
+    status,
+    targetEntityType,
+    take,
+    calls,
+    communities: explored.map((e) => ({
+      id: e.c.id,
+      name: e.c.name,
+      queryStatus: e.entities ? "success" : "failed",
+      ...(e.error ? { errorCode: e.error.code, retryable: e.error.retryable } : {}),
+      resultCount: e.entities ? e.entities.length : 0,
+      results: (e.entities ?? []).map((x, i) => ({
+        entityId: x.id,
+        name: x.name,
+        rank: i + 1,
+        source: x.source,
+        upstream: x.upstream,
+      })),
+    })),
+    candidates: candidates.map((c) => ({
+      ...c,
+      coverageRatio: round4(c.coverageRatio),
+      rankQualityMean: round4(c.rankQualityMean),
+      bridgeScore: round4(c.bridgeScore),
+    })),
+    recommendedIds: selectPortfolio(candidates, successIds, RECOMMENDED),
+    scoring: {
+      formula: "bridgeScore = 0.70 * coverage + 0.30 * rankQualityMean",
+      coverageBasis: successIds.length,
+      note: "WEAVE triage score from observed ranks. Not a Qloo score or an attendance prediction.",
+    },
+    warnings,
+    trace: [
+      { step: "resolve-seeds", status: "complete" },
+      { step: "qloo-exploration", status },
+      { step: "bridge-ranking", status: "complete" },
+    ],
+  };
+}
+
+const layout = (segments) => {
+  let t = 0;
+  return segments.map((s) => {
+    const out = { ...s, startMinute: t };
+    t += Number.isFinite(s.durationMinutes) ? s.durationMinutes : 0;
+    return out;
+  });
+};
+
+// Compiles selected candidates into a run-of-show: bridges first, then recognition anchors, a break, and a co-creation close.
+export function buildPlan({ analysis, brief, selectedIds, costOverrides = {} }) {
+  if (!Array.isArray(selectedIds) || selectedIds.length < LIMITS.selected[0] || selectedIds.length > LIMITS.selected[1]) {
+    fail("select 1 to 10 candidates");
+  }
+  const byId = new Map(analysis.candidates.map((c) => [c.id, c]));
+  const picks = [...new Set(selectedIds)].map((id) => {
+    const c = byId.get(id);
+    if (!c) throw new WeaveError(422, "UNKNOWN_CANDIDATE", `candidate ${id} is not part of this analysis`);
+    return c;
+  });
+  const steps = [
+    ...picks.filter((c) => c.isBridge).map((c) => ({ purpose: "bridge", candidate: c })),
+    ...picks.filter((c) => !c.isBridge).map((c) => ({ purpose: "recognition", candidate: c })),
+  ];
+  steps.push({ purpose: "co-creation", candidate: null });
+  if (steps.length >= 4) steps.splice(Math.floor(steps.length / 2), 0, { purpose: "break", candidate: null });
+  const per = Math.min(brief.maxSegmentMinutes, Math.floor(brief.durationMinutes / steps.length));
+  const segments = steps.map((s, i) => {
+    const id = `seg-${i + 1}`;
+    const overridden = costOverrides[id] !== undefined;
+    let title = "Co-creation (organizer-designed)";
+    if (s.candidate) title = `${s.purpose === "bridge" ? "Bridge" : "Recognition"}: ${s.candidate.name}`;
+    else if (s.purpose === "break") title = "Break";
+    return {
+      id,
+      title,
+      purpose: s.purpose,
+      durationMinutes: per,
+      estimatedCost: overridden ? Number(costOverrides[id]) : COST_ASSUMPTIONS[s.purpose],
+      costKind: overridden ? "user-entered" : "assumption",
+      candidateIds: s.candidate ? [s.candidate.id] : [],
+      communityIds: s.candidate ? s.candidate.communitiesCovered : [],
+      evidenceRefs: s.candidate ? s.candidate.evidenceRefs : [],
+    };
+  });
+  return finalize({ analysis, brief, segments });
+}
+
+// Deterministic validation. Every hard rule lives here; prose from an LLM never overrides it.
+export function finalize({ analysis = null, brief, segments }) {
+  const laid = layout(segments);
+  const errors = [];
+  const warnings = [];
+  if (laid.length > LIMITS.segments) errors.push(`plan has ${laid.length} segments; the maximum is ${LIMITS.segments}`);
+  for (const s of laid) {
+    if (!Number.isInteger(s.durationMinutes) || s.durationMinutes <= 0) {
+      errors.push(`${s.title}: duration must be a positive whole number of minutes`);
+    } else if (s.durationMinutes > brief.maxSegmentMinutes) {
+      errors.push(`${s.title}: ${s.durationMinutes} min exceeds the ${brief.maxSegmentMinutes} min segment limit`);
+    }
+    if (!Number.isFinite(s.estimatedCost) || s.estimatedCost < 0) {
+      errors.push(`${s.title}: cost must be a non-negative number`);
+    }
+    if ((s.purpose === "bridge" || s.purpose === "recognition") && s.candidateIds.length === 0) {
+      errors.push(`${s.title}: Qloo-backed segment has no candidate`);
+    }
+  }
+  const totalMinutes = sumBy(laid, (s) => (Number.isFinite(s.durationMinutes) ? s.durationMinutes : 0));
+  const budgetTotal = sumBy(laid, (s) => (Number.isFinite(s.estimatedCost) ? s.estimatedCost : 0));
+  if (totalMinutes > brief.durationMinutes) {
+    errors.push(`programme runs ${totalMinutes} min; the event has ${brief.durationMinutes} min`);
+  }
+  if (budgetTotal > brief.budgetAmount) {
+    errors.push(`estimated cost ${budgetTotal} ${brief.currency} exceeds the ${brief.budgetAmount} ${brief.currency} ceiling`);
+  }
+  const excluded = new Set(brief.excludedEntityIds);
+  for (const s of laid) {
+    for (const id of s.candidateIds) {
+      if (excluded.has(id)) errors.push(`excluded entity ${id} is used in ${s.title}`);
+    }
+  }
+  if (analysis) {
+    for (const c of analysis.communities) {
+      if (c.queryStatus !== "success") {
+        warnings.push(`${c.name}: query ${c.queryStatus}; this profile contributes no evidence`);
+      } else if (c.resultCount === 0) {
+        warnings.push(`${c.name}: no candidates returned; explain the coverage gap to the organizer`);
+      } else if (!laid.some((s) => s.communityIds.includes(c.id))) {
+        errors.push(`missing required stage: no selected anchor covers ${c.name}`);
+      }
+    }
+    if (analysis.status !== "complete") warnings.push("Analysis is partial.");
+    if (analysis.provenance === "demo-fixture") warnings.push("Demo fixture data: not live Qloo results.");
+  }
+  return {
+    analysisId: analysis?.analysisId ?? null,
+    provenance: analysis?.provenance ?? "user-input",
+    brief,
+    segments: laid,
+    validation: {
+      isValid: errors.length === 0,
+      totalMinutes,
+      availableMinutes: brief.durationMinutes,
+      budgetTotal,
+      budgetCeiling: brief.budgetAmount,
+      currency: brief.currency,
+      errors,
+      warnings,
+    },
+  };
+}
+
+// Deterministic repair suggestions: shorten segments to fit the clock, then drop the optional break to fit the budget.
+export function repairPlan({ segments, brief }) {
+  const changes = [];
+  let out = segments.map((s) => ({ ...s }));
+  const minutes = sumBy(out, (s) => (Number.isFinite(s.durationMinutes) ? s.durationMinutes : 0));
+  if (minutes > brief.durationMinutes) {
+    const per = Math.max(1, Math.floor(brief.durationMinutes / out.length));
+    out = out.map((s) => ({ ...s, durationMinutes: Math.min(s.durationMinutes, per) }));
+    changes.push(`Shortened segments to at most ${per} min so the programme fits ${brief.durationMinutes} min.`);
+  }
+  const cost = sumBy(out, (s) => (Number.isFinite(s.estimatedCost) ? s.estimatedCost : 0));
+  if (cost > brief.budgetAmount && out.some((s) => s.purpose === "break")) {
+    out = out.filter((s) => s.purpose !== "break");
+    changes.push("Removed the optional break to reduce estimated cost.");
+  }
+  return { segments: out, changes };
+}
+
+// Applies a user edit (brief limits, per-segment minutes or cost, optional repair) and re-validates everything.
+export function patchPlan({ plan, analysis = null, patch }) {
+  if (!isObj(patch)) fail("patch must be an object");
+  const brief = validateBrief({ ...plan.brief, ...pick(patch, ["durationMinutes", "budgetAmount", "maxSegmentMinutes"]) });
+  let segments = plan.segments.map((s) => ({ ...s }));
+  for (const sp of Array.isArray(patch.segments) ? patch.segments : []) {
+    const seg = segments.find((s) => s.id === sp?.id);
+    if (!seg || !isObj(sp)) fail(`unknown segment ${sp?.id}`);
+    if (sp.durationMinutes !== undefined) seg.durationMinutes = sp.durationMinutes;
+    if (sp.estimatedCost !== undefined) {
+      seg.estimatedCost = sp.estimatedCost;
+      seg.costKind = "user-entered";
+    }
+  }
+  let changes = [];
+  if (patch.repair === true) ({ segments, changes } = repairPlan({ segments, brief }));
+  return { ...finalize({ analysis, brief, segments }), changes };
+}
+
+;
+// Run-of-show and evidence exports. Pure, so the browser and the server produce identical files.
+// Every export carries provenance, labels costs as assumptions, and holds no credentials.
+const csvCell = (v) => {
+  const s = String(v ?? "");
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+const mdCell = (v) => String(v ?? "").replace(/\|/g, "\\|").replace(/\s+/g, " ").trim();
+const moneyOf = (n, cur) => `${cur} ${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
+const clock = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
+export function buildDocument({ analysis = null, plan }) {
+  const provenance = analysis?.provenance ?? plan.provenance ?? "user-input";
+  return {
+    title: plan.brief.name,
+    provenance,
+    analysisStatus: analysis?.status ?? "none",
+    brief: plan.brief,
+    segments: plan.segments,
+    validation: plan.validation,
+    communities: (analysis?.communities ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      queryStatus: c.queryStatus,
+      errorCode: c.errorCode ?? null,
+      resultCount: c.resultCount,
+    })),
+    candidates: (analysis?.candidates ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      source: c.source,
+      communitiesCovered: c.communitiesCovered,
+      perCommunityRank: c.perCommunityRank,
+      coverageRatio: c.coverageRatio,
+      rankQualityMean: c.rankQualityMean,
+      bridgeScore: c.bridgeScore,
+    })),
+    notes: [
+      "bridgeScore is WEAVE's triage score from observed ranks. It is not a Qloo score or an attendance prediction.",
+      "Costs marked 'assumption' are placeholders for the organizer to replace.",
+      provenance === "qloo-live"
+        ? "Live Qloo results, as returned by the harness at analysis time."
+        : "Demo fixture data: not live Qloo results.",
+    ],
+  };
+}
+
+const toJson = (d) => JSON.stringify(d, null, 2);
+
+function toMarkdown(d) {
+  const cur = d.brief.currency;
+  return [
+    `# ${mdCell(d.title)}`,
+    "",
+    `Provenance: **${d.provenance}** · analysis status: ${d.analysisStatus}`,
+    "",
+    "## Run-of-show",
+    "",
+    "| Start | Min | Purpose | Segment | Cost | Cost kind | Evidence |",
+    "|---|---|---|---|---|---|---|",
+    ...d.segments.map(
+      (s) =>
+        `| ${clock(s.startMinute)} | ${s.durationMinutes} | ${mdCell(s.purpose)} | ${mdCell(s.title)} | ${moneyOf(s.estimatedCost, cur)} | ${s.costKind} | ${mdCell(s.evidenceRefs.join(", ") || "none")} |`,
+    ),
+    "",
+    "## Validation",
+    "",
+    `- Valid: ${d.validation.isValid ? "yes" : "no"}`,
+    `- Time: ${d.validation.totalMinutes} of ${d.validation.availableMinutes} min`,
+    `- Budget: ${moneyOf(d.validation.budgetTotal, cur)} of ${moneyOf(d.validation.budgetCeiling, cur)} (estimates)`,
+    ...d.validation.errors.map((e) => `- Error: ${mdCell(e)}`),
+    ...d.validation.warnings.map((w) => `- Warning: ${mdCell(w)}`),
+    "",
+    "## Evidence",
+    "",
+    "| Candidate | Communities (rank) | Coverage | Triage score |",
+    "|---|---|---|---|",
+    ...d.candidates.map(
+      (c) =>
+        `| ${mdCell(c.name)} | ${mdCell(c.communitiesCovered.map((cid) => `${cid} #${c.perCommunityRank[cid]}`).join(", "))} | ${Math.round(c.coverageRatio * 100)}% | ${c.bridgeScore} |`,
+    ),
+    "",
+    "## Notes",
+    "",
+    ...d.notes.map((n) => `- ${mdCell(n)}`),
+    "",
+  ].join("\n");
+}
+
+function toCsv(d) {
+  const head = ["start_minute", "duration_minutes", "purpose", "title", "candidate_ids", "estimated_cost", "cost_kind", "evidence_refs", "provenance"];
+  const rows = d.segments.map((s) => [
+    s.startMinute,
+    s.durationMinutes,
+    s.purpose,
+    s.title,
+    s.candidateIds.join(";"),
+    s.estimatedCost,
+    s.costKind,
+    s.evidenceRefs.join(";"),
+    d.provenance,
+  ]);
+  return [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
+}
+
+const FORMATS = {
+  json: { type: "application/json; charset=utf-8", ext: "json", render: toJson },
+  md: { type: "text/markdown; charset=utf-8", ext: "md", render: toMarkdown },
+  csv: { type: "text/csv; charset=utf-8", ext: "csv", render: toCsv },
+};
+
+export function renderExport(format, doc) {
+  const f = FORMATS[format];
+  if (!f) throw new Error(`unknown export format: ${format}`);
+  return { body: f.render(doc), type: f.type, ext: f.ext };
+}
+
+;
+// DEMO FIXTURES. Synthetic entities for offline demos. They are not Qloo output. The demo adapter ranks by shared
+// tags so results react to seed changes, and every record carries source "demo-fixture".
+export const DEMO_TARGET = "urn:entity:artist";
+
+const RAW = [
+  ["demo:e01", "Neon Tide", "synth j-pop anime"],
+  ["demo:e02", "Quiet Harbour Trio", "folk acoustic indie"],
+  ["demo:e03", "Pixel Mercury", "chiptune gaming electronic"],
+  ["demo:e04", "Lantern Sound", "indie electronic festival"],
+  ["demo:e05", "Night Tram Records", "jazz indie lofi"],
+  ["demo:e06", "Rhythm Forge Ensemble", "taiko drums festival"],
+  ["demo:e07", "Afterimage (film)", "film cyberpunk gaming"],
+  ["demo:e08", "Glass Circuit Live", "gaming electronic synth"],
+  ["demo:e09", "Street Thread Label", "streetwear hip-hop fashion"],
+  ["demo:e10", "Monsoon Beats Crew", "hip-hop indie festival"],
+  ["demo:e11", "Dub Lantern Sound", "dub electronic reggae"],
+  ["demo:e12", "Chai and Synth Session", "food electronic lofi"],
+  ["demo:e13", "Ramen Night Cinema", "food film anime"],
+  ["demo:e14", "Polyglot Poetry Circle", "language spoken-word indie"],
+  ["demo:e15", "Retro Arcade Orchestra", "chiptune orchestral gaming"],
+  ["demo:e16", "Mountain Radio Folk", "folk indie acoustic"],
+];
+
+export const DEMO_POOL = RAW.map(([id, name, tags]) => ({ id, name, type: DEMO_TARGET, tags: tags.split(" ") }));
+
+export const DEMO_PRESET = [
+  { id: "anime-gaming", name: "Anime and gaming", description: "Organizer-defined programming segment", priority: 2, seedIds: ["demo:e01", "demo:e03"] },
+  { id: "indie-folk", name: "Indie and folk", description: "Organizer-defined programming segment", priority: 3, seedIds: ["demo:e02", "demo:e05"] },
+  { id: "food-language", name: "Food and language clubs", description: "Organizer-defined programming segment", priority: 1, seedIds: ["demo:e12", "demo:e14"] },
+];
+
+// Stand-in for Qloo Insights: ranks pool entities by shared tags with the seeds, skipping seeds and exclusions.
+export function createDemoAdapter(pool = DEMO_POOL) {
+  const byId = new Map(pool.map((e) => [e.id, e]));
+  const out = (e) => ({ id: e.id, name: e.name, type: e.type, source: "demo-fixture", upstream: {} });
+  return {
+    async searchEntities({ query = "", limit = 10 } = {}) {
+      const q = String(query).trim().toLowerCase();
+      return pool.filter((e) => e.name.toLowerCase().includes(q)).slice(0, limit).map(out);
+    },
+    async getRecommendations({ seedEntityIds = [], excludedEntityIds = [], limit = 10 } = {}) {
+      const seeds = seedEntityIds.map((id) => byId.get(id));
+      if (!seeds.length || seeds.some((s) => !s)) {
+        throw Object.assign(new Error("unknown demo seed"), { code: "ENTITY_NOT_FOUND" });
+      }
+      const skip = new Set([...seedEntityIds, ...excludedEntityIds]);
+      return pool
+        .filter((e) => !skip.has(e.id))
+        .map((e) => ({ e, score: seeds.reduce((s, sd) => s + sd.tags.filter((t) => e.tags.includes(t)).length, 0) }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score || (a.e.id < b.e.id ? -1 : 1))
+        .slice(0, limit)
+        .map((x) => out(x.e));
+    },
+  };
+}
+
+;
+// WEAVE app. Served by the WEAVE server (demo and live) or standalone (demo only).
+// Entity names come from upstream data, so every interpolated value goes through esc().
+(() => {
+  const $ = (sel) => document.querySelector(sel);
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const money = (n, cur) => `${cur} ${Math.round(n).toLocaleString("en-US")}`;
+  const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const NUMERIC = ["durationMinutes", "maxSegmentMinutes", "budgetAmount", "capacity"];
+  const demo = createDemoAdapter();
+  const nameOf = (id) => DEMO_POOL.find((e) => e.id === id)?.name ?? id;
+  const presetCommunities = () =>
+    DEMO_PRESET.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      priority: p.priority,
+      seeds: p.seedIds.map((id) => ({ id, name: nameOf(id), provenance: "demo-fixture" })),
+    }));
+  const S = {
+    server: false,
+    mode: "demo",
+    brief: {
+      name: "Cross-Culture Campus Night", locationLabel: "Bengaluru, India", durationMinutes: 120,
+      maxSegmentMinutes: 30, budgetAmount: 25000, currency: "INR", capacity: 250,
+      noveltyMode: "balanced", excludedEntityIds: [],
+    },
+    communities: presetCommunities(),
+    search: {},
+    analysis: null, picked: new Set(), focus: null, plan: null,
+    error: "", notice: "", busy: false, baseline: false, exportFmt: "md",
+  };
+
+  const call = async (path, init) => {
+    const res = await fetch(path, init);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body?.error?.message ?? `Request failed (${res.status})`);
+    return body;
+  };
+  const post = (path, body) =>
+    call(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+
+  const checkServer = async () => {
+    try {
+      const h = await call("/api/health");
+      S.server = h.status === "ok" && typeof h.version === "string";
+    } catch {
+      S.server = false;
+    }
+  };
+
+  const afterSeedChange = () => {
+    if (S.mode === "demo") return void analyze();
+    S.analysis = null;
+    S.plan = null;
+    S.notice = "Seeds changed. Run the live analysis when every profile has 2 to 5 seeds.";
+    render();
+  };
+
+  const setMode = (mode) => {
+    S.mode = mode;
+    S.communities = mode === "live" ? S.communities.map((c) => ({ ...c, seeds: [] })) : presetCommunities();
+    S.analysis = null;
+    S.plan = null;
+    S.search = {};
+    S.focus = null;
+    S.error = "";
+    S.notice = mode === "live" ? "Live mode: search and confirm 2 to 5 seeds per profile. Each analysis uses Qloo quota, so you start it yourself." : "";
+    if (mode === "demo") return void analyze();
+    render();
+  };
+
+  const briefView = () => {
+    const b = S.brief;
+    const input = (key, type = "text", extra = "") => `<input data-brief="${key}" type="${type}" value="${esc(b[key])}" ${extra}>`;
+    const select = (key, opts) =>
+      `<select data-brief="${key}">${opts.map((o) => `<option value="${esc(o)}" ${String(b[key]) === String(o) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+    const field = (label, control) => `<label class="field"><span>${label}</span>${control}</label>`;
+    return `<section class="card"><h2>1 · Experience brief</h2><div class="grid2">
+      ${field("Event name", input("name", "text", 'maxlength="100"'))}
+      ${field("Location", input("locationLabel"))}
+      ${field("Duration (min)", select("durationMinutes", [60, 90, 120]))}
+      ${field("Max segment (min)", input("maxSegmentMinutes", "number", 'min="5" max="60"'))}
+      ${field("Budget ceiling", input("budgetAmount", "number", 'min="0" step="500"'))}
+      ${field("Currency", select("currency", ["INR", "USD"]))}
+      ${field("Capacity", input("capacity", "number", 'min="1" max="10000"'))}
+      ${field("Familiarity", select("noveltyMode", ["balanced", "familiar-first", "adventurous"]))}
+    </div></section>`;
+  };
+
+  const communityCard = (c) => {
+    const box = S.search[c.id] ?? { q: "", items: [], error: "" };
+    const results = box.items.length
+      ? `<ul class="results">${box.items
+          .map(
+            (it) => `<li><span>${esc(it.name)} <span class="muted">${esc(it.type ?? "")}</span></span>
+              <button data-action="confirm" data-c="${esc(c.id)}" data-id="${esc(it.id)}" ${c.seeds.length >= 5 ? "disabled" : ""}>Confirm seed</button></li>`,
+          )
+          .join("")}</ul>`
+      : box.error
+        ? `<p class="muted">${esc(box.error)}</p>`
+        : "";
+    return `<article class="community"><h3>${esc(c.name)}</h3>
+      <p class="muted">${esc(c.description)} · ${c.seeds.length} of 2 to 5 seeds</p>
+      <div class="chips">${c.seeds
+        .map((s) => `<span class="chip">${esc(s.name)}<button class="x" data-action="drop-seed" data-c="${esc(c.id)}" data-id="${esc(s.id)}" aria-label="Remove ${esc(s.name)}">×</button></span>`)
+        .join("")}</div>
+      <div class="search"><input data-search="${esc(c.id)}" type="search" placeholder="Search entities" aria-label="Search entities for ${esc(c.name)}" value="${esc(box.q)}">
+        <button data-action="search" data-c="${esc(c.id)}">Search</button></div>
+      ${results}</article>`;
+  };
+
+  const communitiesView = () => `<section class="card"><h2>2 · Audience constellation</h2>
+    <div class="grid2">${S.communities.map(communityCard).join("")}</div>
+    <div class="row"><button class="primary" data-action="analyze" ${S.busy ? "disabled" : ""}>${
+      S.busy ? "Running…" : S.mode === "live" ? "Run live analysis" : "Run cultural exploration"
+    }</button><span class="muted">${S.mode === "live" ? "Uses Qloo quota through the server." : "Demo fixtures only. Nothing here is Qloo output."}</span></div></section>`;
+
+  const bridgeView = () => {
+    const A = S.analysis;
+    const cs = A.candidates.slice(0, 9);
+    const inspector = `<div class="inspector"><p><span class="pill ${A.provenance === "qloo-live" ? "ok" : "demo"}">${esc(A.provenance)}</span>
+      status ${esc(A.status)} · ${A.mode === "live" ? "Qloo calls" : "demo adapter calls"}: ${A.calls}</p>
+      <p class="muted">${A.communities
+        .map((c) => `${esc(c.name)}: ${c.queryStatus === "success" ? `${c.resultCount} results` : `failed (${esc(c.errorCode)})`}`)
+        .join(" · ")}</p>
+      ${A.warnings.map((w) => `<p class="warn">! ${esc(w)}</p>`).join("")}</div>`;
+    if (!cs.length) {
+      return `<section class="card"><h2>3 · Bridge map</h2>${inspector}<p class="muted">No candidate was returned by this query set. No bridge was invented.</p></section>`;
+    }
+    const cname = (cid) => A.communities.find((c) => c.id === cid)?.name ?? cid;
+    const H = Math.max(40 + cs.length * 40, 60 + A.communities.length * 120);
+    const cx = 230;
+    const kx = 520;
+    const rowY = (i) => 60 + i * 40;
+    const commY = (cid) => 60 + A.communities.findIndex((c) => c.id === cid) * 120;
+    const edges = cs
+      .flatMap((c, i) =>
+        c.communitiesCovered.map(
+          (cid) => `<line x1="${cx}" y1="${commY(cid)}" x2="${kx}" y2="${rowY(i)}" class="${c.isBridge ? "edge-bridge" : "edge"}"></line>`,
+        ),
+      )
+      .join("");
+    const comms = A.communities
+      .map((c) => `<circle cx="${cx}" cy="${commY(c.id)}" r="20" class="comm"></circle><text x="${cx - 30}" y="${commY(c.id) + 4}" text-anchor="end">${esc(c.name)}</text>`)
+      .join("");
+    const nodes = cs
+      .map((c, i) => {
+        const pct = Math.round(c.coverageRatio * 100);
+        const cls = `node${S.focus === c.id ? " focus" : ""}${S.picked.has(c.id) ? " picked" : ""}`;
+        return `<g class="${cls}" data-action="focus" data-id="${esc(c.id)}" tabindex="0" role="button" aria-label="${esc(c.name)}, covers ${pct} percent of profiles"><circle cx="${kx}" cy="${rowY(i)}" r="7"></circle><text x="${kx + 14}" y="${rowY(i) + 4}">${esc(c.name)} · ${pct}%</text></g>`;
+      })
+      .join("");
+    const rows = cs
+      .map((c) => {
+        const ranks = c.communitiesCovered.map((cid) => `${esc(cname(cid))} #${c.perCommunityRank[cid]}`).join("<br>");
+        const on = S.picked.has(c.id);
+        return `<tr><td>${esc(c.name)}</td><td>${ranks}</td><td>${Math.round(c.coverageRatio * 100)}%</td><td>${c.bridgeScore.toFixed(3)}</td><td><button data-action="toggle" data-id="${esc(c.id)}" aria-pressed="${on}">${on ? "Remove" : "Add"}</button></td></tr>`;
+      })
+      .join("");
+    const f = cs.find((c) => c.id === S.focus);
+    const evidence = f
+      ? `<div class="evidence"><h3>${esc(f.name)} <span class="pill ${f.source === "qloo-live" ? "ok" : "demo"}">${esc(f.source)}</span></h3>
+         <p class="muted">coverage = ${f.communitiesCovered.length}/${A.scoring.coverageBasis} = ${f.coverageRatio.toFixed(3)} · rankQualityMean = ${f.rankQualityMean.toFixed(3)}</p>
+         <p>bridgeScore = 0.70 × ${f.coverageRatio.toFixed(3)} + 0.30 × ${f.rankQualityMean.toFixed(3)} = <strong>${f.bridgeScore.toFixed(3)}</strong></p>
+         <p class="muted">WEAVE's triage score from observed ranks. Not a Qloo score or an attendance prediction.</p>
+         <p class="muted">${f.evidenceRefs.map(esc).join(" · ")}</p>
+         <button data-action="exclude" data-id="${esc(f.id)}">Exclude from analysis</button></div>`
+      : `<p class="muted">Select a node to inspect its evidence.</p>`;
+    return `<section class="card"><h2>3 · Bridge map</h2>${inspector}
+      <svg viewBox="0 0 760 ${H}" role="img" aria-label="Communities linked to candidate entities. Amber edges mark bridges.">${edges}${comms}${nodes}</svg>
+      ${evidence}
+      <details open><summary class="muted">Table view (accessible alternative)</summary>
+      <table><thead><tr><th>Candidate</th><th>Observed ranks</th><th>Coverage</th><th>Score</th><th>Plan</th></tr></thead><tbody>${rows}</tbody></table></details></section>`;
+  };
+
+  const baselineView = () => {
+    const P = S.plan;
+    const names = ["Welcome set", "Open stage", "Film screening", "Food stalls", "Workshop", "Closing jam", "Quiz", "Photo corner"];
+    const backed = P.segments.filter((s) => s.candidateIds.length > 0).length;
+    const rows = P.segments
+      .map((s, i) => `<tr><td>${hhmm(s.startMinute)}</td><td>${esc(names[i % names.length])}</td><td>${s.durationMinutes} min</td></tr>`)
+      .join("");
+    return `<div class="baseline"><p class="muted">Generic template with the same slots and lengths. It has no Qloo evidence: 0 of ${P.segments.length} segments are evidence-backed. This plan: ${backed} of ${P.segments.length} segments cite a Qloo candidate.</p>
+      <table><tbody>${rows}</tbody></table></div>`;
+  };
+
+  const exportView = () => {
+    const out = renderExport(S.exportFmt, buildDocument({ analysis: S.analysis, plan: S.plan }));
+    const fmts = [["md", "Markdown"], ["csv", "CSV"], ["json", "JSON"]]
+      .map(([k, label]) => `<button data-action="fmt" data-fmt="${k}" aria-pressed="${S.exportFmt === k}">${label}</button>`)
+      .join("");
+    return `<div class="exports"><div class="row"><span class="toggle" role="group" aria-label="Export format">${fmts}</span>${
+      S.server ? `<button data-action="download">Download</button>` : ""
+    }</div><pre>${esc(out.body)}</pre></div>`;
+  };
+
+  const planView = () => {
+    const P = S.plan;
+    const v = P.validation;
+    const total = P.brief.durationMinutes;
+    const segs = P.segments
+      .map((s) => `<div class="seg ${esc(s.purpose)}" style="width:${((s.durationMinutes / total) * 100).toFixed(2)}%" title="${esc(s.title)}"></div>`)
+      .join("");
+    const buffer = Math.max(0, total - v.totalMinutes);
+    const bar = `${segs}<div class="seg buffer" style="width:${((buffer / total) * 100).toFixed(2)}%" title="Unallocated time"></div>`;
+    const rows = P.segments
+      .map(
+        (s) => `<li class="seg-row">
+        <span><strong>${hhmm(s.startMinute)}</strong> <span class="chip ${esc(s.purpose)}">${esc(s.purpose)}</span></span>
+        <span>${esc(s.title)}</span>
+        <label class="field">min<input type="number" min="1" max="60" value="${s.durationMinutes}" data-seg="${esc(s.id)}" data-field="durationMinutes"></label>
+        <label class="field">cost<input type="number" min="0" step="100" value="${s.estimatedCost}" data-seg="${esc(s.id)}" data-field="estimatedCost"></label>
+        <small class="muted">${s.costKind === "assumption" ? "Assumed cost (placeholder)" : "Organizer-entered cost"} · ${
+          s.evidenceRefs.length ? s.evidenceRefs.map(esc).join(" ") : "organizer-designed, no Qloo evidence"
+        }</small>
+      </li>`,
+      )
+      .join("");
+    const notes = [
+      ...v.errors.map((e) => `<p class="err">✕ ${esc(e)}</p>`),
+      ...v.warnings.map((w) => `<p class="warn">! ${esc(w)}</p>`),
+      ...(P.changes ?? []).map((c) => `<p class="muted">→ ${esc(c)}</p>`),
+    ].join("");
+    return `<section class="card"><h2>4 · Experience composer</h2>
+      <div class="bar" role="img" aria-label="Programme timeline">${bar}</div>
+      <ol class="timeline">${rows}</ol>
+      <div class="grid2">
+        <label class="field">Event length (min)<select data-brief-patch="durationMinutes">${[60, 90, 120]
+          .map((m) => `<option value="${m}" ${m === total ? "selected" : ""}>${m}</option>`)
+          .join("")}</select></label>
+        <label class="field">Budget ceiling (${esc(v.currency)})<input type="number" min="0" step="500" value="${v.budgetCeiling}" data-brief-patch="budgetAmount"></label>
+      </div>
+      <p class="row"><span class="pill ${v.isValid ? "ok" : "bad"}">${v.isValid ? "Valid" : "Invalid"}</span>
+        <span>${v.totalMinutes} of ${v.availableMinutes} min</span>
+        <span>${esc(money(v.budgetTotal, v.currency))} of ${esc(money(v.budgetCeiling, v.currency))}</span></p>
+      ${notes}
+      <div class="row"><button data-action="repair">Suggest repair</button><button data-action="baseline">${S.baseline ? "Hide" : "Compare with"} generic baseline</button></div>
+      ${S.baseline ? baselineView() : ""}
+      <details open><summary class="muted">Export run-of-show and evidence</summary>${exportView()}</details></section>`;
+  };
+
+  const render = () => {
+    const pill = S.mode === "live" ? `<span class="pill ok">Live Qloo · via server</span>` : `<span class="pill demo">Demo fixture · not live Qloo data</span>`;
+    const toggle = S.server
+      ? `<span class="toggle" role="group" aria-label="Data source"><button data-action="mode" data-mode="demo" aria-pressed="${S.mode === "demo"}">Demo</button><button data-action="mode" data-mode="live" aria-pressed="${S.mode === "live"}">Live</button></span>`
+      : "";
+    $("#app").innerHTML = `
+      <header><div><div class="wordmark">WEAVE</div><p class="tag">Don't optimize for a crowd. Design the connections between them.</p></div>
+      <div class="row">${toggle}${pill}</div></header>
+      ${S.notice ? `<div class="notice">${esc(S.notice)}</div>` : ""}
+      ${briefView()}
+      ${communitiesView()}
+      ${S.error ? `<div class="alert" role="alert">${esc(S.error)}</div>` : ""}
+      ${S.analysis ? bridgeView() : ""}
+      ${S.plan ? planView() : ""}`;
+  };
+
+  const planFromPicks = () => {
+    if (!S.analysis) return;
+    if (!S.picked.size) {
+      S.plan = null;
+      return;
+    }
+    try {
+      const brief = validateBrief(S.brief);
+      S.brief = brief;
+      S.plan = buildPlan({ analysis: S.analysis, brief, selectedIds: [...S.picked] });
+      S.error = "";
+    } catch (e) {
+      S.plan = null;
+      S.error = e.message;
+    }
+  };
+
+  const analyze = async () => {
+    S.busy = true;
+    S.error = "";
+    S.plan = null;
+    render();
+    try {
+      const brief = validateBrief(S.brief);
+      const communities = validateCommunities(S.communities, S.mode);
+      const input = { brief, communities, targetEntityType: DEMO_TARGET };
+      S.analysis =
+        S.mode === "live"
+          ? await post("/api/analysis", { mode: "live", ...input })
+          : await runAnalysis({ adapter: demo, mode: "demo", ...input, analysisId: `demo-${Date.now().toString(36)}` });
+      S.picked = new Set(S.analysis.recommendedIds);
+      S.focus = S.analysis.recommendedIds[0] ?? null;
+      planFromPicks();
+    } catch (e) {
+      S.analysis = null;
+      S.error = e.message;
+    }
+    S.busy = false;
+    render();
+  };
+
+  const runSearch = async (cid) => {
+    const box = (S.search[cid] ??= { q: "", items: [], error: "" });
+    const q = box.q.trim();
+    if (!q) {
+      box.items = [];
+      box.error = "Type a name first.";
+      return render();
+    }
+    try {
+      box.items = S.mode === "live" ? (await call(`/api/entities/search?q=${encodeURIComponent(q)}&mode=live`)).items : await demo.searchEntities({ query: q, limit: 10 });
+      box.error = box.items.length ? "" : "No matches. Try another spelling.";
+    } catch (e) {
+      box.items = [];
+      box.error = e.message;
+    }
+    render();
+  };
+
+  const addSeed = (cid, id) => {
+    const c = S.communities.find((x) => x.id === cid);
+    const item = S.search[cid]?.items.find((x) => x.id === id);
+    if (c && item && c.seeds.length < 5 && !c.seeds.some((s) => s.id === id)) {
+      c.seeds.push({ id: item.id, name: item.name, provenance: item.source });
+      S.search[cid] = { q: "", items: [], error: "" };
+      return afterSeedChange();
+    }
+    render();
+  };
+
+  const exclude = (id) => {
+    if (!S.brief.excludedEntityIds.includes(id)) S.brief.excludedEntityIds.push(id);
+    S.picked.delete(id);
+    if (S.mode === "demo") return void analyze();
+    S.analysis = null;
+    S.plan = null;
+    S.notice = "Excluded. Run the live analysis again to recompute the bridge map.";
+    render();
+  };
+
+  const patch = (p) => {
+    if (!S.plan) return render();
+    try {
+      S.plan = patchPlan({ plan: S.plan, analysis: S.analysis, patch: p });
+      S.brief = S.plan.brief;
+      S.error = "";
+    } catch (e) {
+      S.error = e.message;
+    }
+    render();
+  };
+
+  const download = async () => {
+    try {
+      let out;
+      if (S.mode === "live" && S.server) {
+        const res = await fetch("/api/export", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ analysisId: S.analysis.analysisId, format: S.exportFmt, brief: S.plan.brief, segments: S.plan.segments }),
+        });
+        if (!res.ok) throw new Error(`Export failed (${res.status})`);
+        out = { body: await res.text(), type: res.headers.get("content-type") ?? "text/plain" };
+      } else {
+        out = renderExport(S.exportFmt, buildDocument({ analysis: S.analysis, plan: S.plan }));
+      }
+      const url = URL.createObjectURL(new Blob([out.body], { type: out.type }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `weave-run-of-show.${S.exportFmt}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      S.error = e.message;
+      render();
+    }
+  };
+
+  document.addEventListener("click", (ev) => {
+    const el = ev.target.closest?.("[data-action]");
+    if (!el) return;
+    const act = el.dataset.action;
+    const id = el.dataset.id;
+    const cid = el.dataset.c;
+    if (act === "analyze") return void analyze();
+    if (act === "mode") return setMode(el.dataset.mode);
+    if (act === "search") return void runSearch(cid);
+    if (act === "confirm") return addSeed(cid, id);
+    if (act === "drop-seed") {
+      const c = S.communities.find((x) => x.id === cid);
+      if (c) c.seeds = c.seeds.filter((s) => s.id !== id);
+      return afterSeedChange();
+    }
+    if (act === "focus") {
+      S.focus = id;
+      return render();
+    }
+    if (act === "toggle") {
+      if (S.picked.has(id)) S.picked.delete(id);
+      else S.picked.add(id);
+      S.focus = id;
+      planFromPicks();
+      return render();
+    }
+    if (act === "exclude") return exclude(id);
+    if (act === "repair") return patch({ repair: true });
+    if (act === "baseline") {
+      S.baseline = !S.baseline;
+      return render();
+    }
+    if (act === "fmt") {
+      S.exportFmt = el.dataset.fmt;
+      return render();
+    }
+    if (act === "download") return void download();
+  });
+
+  document.addEventListener("input", (ev) => {
+    const cid = ev.target.dataset?.search;
+    if (cid === undefined) return;
+    (S.search[cid] ??= { q: "", items: [], error: "" }).q = ev.target.value;
+  });
+
+  document.addEventListener("keydown", (ev) => {
+    const t = ev.target;
+    if (ev.key === "Enter" && t.dataset?.search !== undefined) {
+      ev.preventDefault();
+      return void runSearch(t.dataset.search);
+    }
+    if ((ev.key === "Enter" || ev.key === " ") && t.matches?.("[data-action='focus']")) {
+      ev.preventDefault();
+      t.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+  });
+
+  document.addEventListener("change", (ev) => {
+    const el = ev.target;
+    if (el.dataset.brief !== undefined) {
+      const k = el.dataset.brief;
+      S.brief[k] = NUMERIC.includes(k) ? Number(el.value) : el.value;
+      if (S.analysis) planFromPicks();
+      return render();
+    }
+    if (el.dataset.seg !== undefined) return patch({ segments: [{ id: el.dataset.seg, [el.dataset.field]: Number(el.value) }] });
+    if (el.dataset.briefPatch !== undefined) return patch({ [el.dataset.briefPatch]: Number(el.value) });
+  });
+
+  (async () => {
+    await checkServer();
+    render();
+    if (S.mode === "demo") void analyze();
+  })();
+})();
+
+</script>
+</body>
+</html>

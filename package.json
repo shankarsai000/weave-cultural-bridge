@@ -1,0 +1,13 @@
+{
+  "name": "weave",
+  "version": "0.2.0",
+  "description": "WEAVE: cultural-bridge event planning backed by Qloo recommendations (backend core and demo UI)",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.19.0" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "test": "node --test \"test/*.test.js\"",
+    "build:web": "node scripts/build-web.js"
+  }
+}
