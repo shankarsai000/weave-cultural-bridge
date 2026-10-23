@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import * as core from "./core.js";
 import { createDemoAdapter, DEMO_TARGET } from "./fixtures.js";
 import { createHarnessAdapter } from "./harness.js";
+import { createRestAdapter, HACKATHON_BASE_URL } from "./rest.js";
 import { buildDocument, renderExport } from "./exporters.js";
 
 const VERSION = "0.2.0";
@@ -59,8 +60,12 @@ function resolveMode(v) {
   if (mode !== "demo" && mode !== "live") throw new core.WeaveError(400, "VALIDATION_FAILED", "mode must be demo or live");
   return mode;
 }
-const adapterFor = (mode) =>
-  mode === "live" ? createHarnessAdapter({ timeoutMs: Number(process.env.QLOO_TIMEOUT_MS) || 15000 }) : createDemoAdapter();
+const transport = () => (process.env.QLOO_TRANSPORT === "harness" ? "harness" : "rest");
+const timeoutMs = () => Number(process.env.QLOO_TIMEOUT_MS) || 15000;
+const adapterFor = (mode) => {
+  if (mode !== "live") return createDemoAdapter();
+  return transport() === "harness" ? createHarnessAdapter({ timeoutMs: timeoutMs() }) : createRestAdapter({ timeoutMs: timeoutMs() });
+};
 
 function send(res, status, body) {
   res.writeHead(status, {
@@ -109,9 +114,16 @@ async function handle(req, res, url) {
       status: "ok",
       version: VERSION,
       defaultMode: defaultMode(),
-      liveTransport: "qloo harness (qloo api)",
+      liveTransport: transport() === "harness" ? "qloo harness (qloo api)" : `rest ${process.env.QLOO_BASE_URL || HACKATHON_BASE_URL}`,
       qlooKeyInEnv: Boolean(process.env.QLOO_API_KEY),
     });
+  }
+  if (req.method === "GET" && p === "/api/tags/search") {
+    const q = (url.searchParams.get("q") ?? "").trim();
+    if (!q || q.length > 100) throw new core.WeaveError(400, "VALIDATION_FAILED", "q must be 1 to 100 characters");
+    const adapter = adapterFor("live");
+    if (!adapter.searchTags) throw new core.WeaveError(501, "NOT_SUPPORTED", "tag search needs the REST transport");
+    return send(res, 200, { items: await adapter.searchTags({ query: q, limit: 10 }), provenance: "qloo-live" });
   }
   if (req.method === "GET" && p === "/api/entities/search") {
     const q = (url.searchParams.get("q") ?? "").trim();

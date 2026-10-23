@@ -136,8 +136,66 @@ export function normalizeEntities(payload) {
     const affinity = e.affinity ?? e.query?.affinity;
     if (typeof affinity === "number") upstream.affinity = affinity;
     if (typeof e.popularity === "number") upstream.popularity = e.popularity;
-    return { id, name: e.name, type: typeof e.type === "string" ? e.type : undefined, source: "qloo-live", upstream };
+    return {
+      id,
+      name: e.name,
+      type: typeof e.type === "string" ? e.type : undefined,
+      source: "qloo-live",
+      upstream,
+      tags: normalizeTags(e.tags),
+    };
   });
+}
+
+// Qloo entities carry tags as [{ id, name, type }]. Anything without a string id and name is dropped.
+export function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags
+    .map((t) => ({ id: t?.id ?? t?.tag_id, name: t?.name, type: typeof t?.type === "string" ? t.type : undefined }))
+    .filter((t) => typeof t.id === "string" && t.id && typeof t.name === "string" && t.name)
+    .slice(0, 40);
+}
+
+// Tag bridges: a tag carried by results in more than one community's list.
+// prevalence(t,c) = share of community c's results that carry tag t (observed, not inferred).
+// tagBridgeScore = 0.70 * coverage + 0.30 * mean prevalence over covering communities. WEAVE math, not a Qloo score.
+export function computeTagBridges(communityLists, max = 15) {
+  const ids = Object.keys(communityLists);
+  const rows = new Map();
+  for (const cid of ids) {
+    const list = communityLists[cid];
+    if (!list.length) continue;
+    const counts = new Map();
+    for (const e of list) {
+      for (const t of new Map((e.tags ?? []).map((x) => [x.id, x])).values()) {
+        const hit = counts.get(t.id) ?? { tag: t, entityIds: [] };
+        hit.entityIds.push(e.id);
+        counts.set(t.id, hit);
+      }
+    }
+    for (const [tid, { tag, entityIds }] of counts) {
+      const row = rows.get(tid) ?? { id: tid, name: tag.name, type: tag.type, prevalence: {}, supportingEntityIds: {} };
+      row.prevalence[cid] = entityIds.length / list.length;
+      row.supportingEntityIds[cid] = entityIds.slice(0, 5);
+      rows.set(tid, row);
+    }
+  }
+  return [...rows.values()]
+    .map((r) => {
+      const covered = ids.filter((c) => r.prevalence[c] !== undefined);
+      const meanPrevalence = sumBy(covered, (c) => r.prevalence[c]) / covered.length;
+      const coverageRatio = covered.length / ids.length;
+      return {
+        ...r,
+        communitiesCovered: covered,
+        coverageRatio: round4(coverageRatio),
+        meanPrevalence: round4(meanPrevalence),
+        tagBridgeScore: round4(0.7 * coverageRatio + 0.3 * meanPrevalence),
+      };
+    })
+    .filter((r) => r.communitiesCovered.length > 1)
+    .sort((a, b) => b.tagBridgeScore - a.tagBridgeScore || byIdAsc(a.id, b.id))
+    .slice(0, max);
 }
 
 // communityLists: { [communityId]: entity[] } in upstream order (index 0 = rank 1).
@@ -241,6 +299,9 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
   const lists = Object.fromEntries(ok.map((e) => [e.c.id, e.entities]));
   const successIds = ok.map((e) => e.c.id);
   const candidates = scoreCandidates(lists, excluded);
+  const tagBridges = computeTagBridges(
+    Object.fromEntries(Object.entries(lists).map(([cid, l]) => [cid, l.filter((e) => !excluded.has(e.id))])),
+  );
   const status = ok.length === explored.length ? "complete" : ok.length ? "partial" : "failed";
   const warnings = [];
   if (status !== "complete") {
@@ -269,6 +330,7 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
         rank: i + 1,
         source: x.source,
         upstream: x.upstream,
+        tags: (x.tags ?? []).slice(0, 8),
       })),
     })),
     candidates: candidates.map((c) => ({
@@ -278,8 +340,10 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
       bridgeScore: round4(c.bridgeScore),
     })),
     recommendedIds: selectPortfolio(candidates, successIds, RECOMMENDED),
+    tagBridges,
     scoring: {
       formula: "bridgeScore = 0.70 * coverage + 0.30 * rankQualityMean",
+      tagFormula: "tagBridgeScore = 0.70 * coverage + 0.30 * meanPrevalence (share of each community's results carrying the tag)",
       coverageBasis: successIds.length,
       note: "WEAVE triage score from observed ranks. Not a Qloo score or an attendance prediction.",
     },
@@ -288,6 +352,7 @@ export async function runAnalysis({ adapter, mode, brief, communities, targetEnt
       { step: "resolve-seeds", status: "complete" },
       { step: "qloo-exploration", status },
       { step: "bridge-ranking", status: "complete" },
+      { step: "tag-bridges", status: "complete", count: tagBridges.length },
     ],
   };
 }

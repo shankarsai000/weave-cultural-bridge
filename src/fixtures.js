@@ -32,7 +32,14 @@ export const DEMO_PRESET = [
 // Stand-in for Qloo Insights: ranks pool entities by shared tags with the seeds, skipping seeds and exclusions.
 export function createDemoAdapter(pool = DEMO_POOL) {
   const byId = new Map(pool.map((e) => [e.id, e]));
-  const out = (e) => ({ id: e.id, name: e.name, type: e.type, source: "demo-fixture", upstream: {} });
+  const out = (e) => ({
+    id: e.id,
+    name: e.name,
+    type: e.type,
+    source: "demo-fixture",
+    upstream: {},
+    tags: e.tags.map((t) => ({ id: `demo-tag:${t}`, name: t, type: "demo-tag" })),
+  });
   return {
     async searchEntities({ query = "", limit = 10 } = {}) {
       const q = String(query).trim().toLowerCase();

@@ -10,6 +10,7 @@ import { createHarnessAdapter } from "../src/harness.js";
 // seed exclusion, export) runs end to end with no credential and no network.
 const FAKE = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures", "fake-qloo.mjs");
 process.env.QLOO_CLI = FAKE;
+process.env.QLOO_TRANSPORT = "harness";
 process.env.WEAVE_LOG = "off";
 
 let server;

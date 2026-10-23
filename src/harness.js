@@ -27,8 +27,11 @@ function fromHarnessError(code) {
 }
 
 function run(args, { bin, timeoutMs }) {
+  const isScript = bin.endsWith(".mjs") || bin.endsWith(".js");
+  const file = isScript ? process.execPath : bin;
+  const execArgs = isScript ? [bin, ...args] : args;
   return new Promise((resolve, reject) => {
-    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, windowsHide: true }, (err, stdout) => {
+    execFile(file, execArgs, { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, windowsHide: true }, (err, stdout) => {
       let body = null;
       try {
         body = JSON.parse(String(stdout));
