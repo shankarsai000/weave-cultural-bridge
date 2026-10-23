@@ -9,8 +9,11 @@ import { createDemoAdapter, DEMO_TARGET } from "./fixtures.js";
 import { createHarnessAdapter } from "./harness.js";
 import { createRestAdapter, HACKATHON_BASE_URL } from "./rest.js";
 import { buildDocument, renderExport } from "./exporters.js";
+import { runSynestheticAnalysis } from "./synesthesia.js";
+import { buildAgentPersonas, simulateRehearsal } from "./rehearsal.js";
+import { createRoom, getRoom, subscribeToRoom, submitAttendeeSeeds, updateRoomPulse } from "./rooms.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MAX_BODY = 64 * 1024;
 const analyses = new Map();
@@ -101,6 +104,16 @@ async function handle(req, res, url) {
   const p = url.pathname;
   if (req.method === "GET" && (p === "/" || p === "/index.html")) {
     const html = await readFile(path.join(ROOT, "public", "index.html"));
+    res.writeHead(200, {
+      "content-type": "text/html; charset=utf-8",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+    });
+    return res.end(html);
+  }
+  if (req.method === "GET" && (p === "/room" || p === "/room.html")) {
+    const html = await readFile(path.join(ROOT, "public", "room.html"));
     res.writeHead(200, {
       "content-type": "text/html; charset=utf-8",
       "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:",
@@ -210,6 +223,79 @@ async function handle(req, res, url) {
     const body = await readJson(req);
     if (typeof body.useful !== "boolean") throw new core.WeaveError(400, "VALIDATION_FAILED", "useful must be true or false");
     return send(res, 202, { accepted: true, stored: false });
+  }
+  if (req.method === "POST" && p === "/api/synesthesia") {
+    const body = await readJson(req);
+    const mode = resolveMode(body.mode);
+    const brief = core.validateBrief(body.brief);
+    const communities = core.validateCommunities(body.communities, mode);
+    const domains = Array.isArray(body.domains) ? body.domains : ["sonic", "visual", "gastronomic"];
+    const synesthesia = await runSynestheticAnalysis({
+      adapter: adapterFor(mode),
+      brief,
+      communities,
+      domains,
+      takePerDomain: 5,
+    });
+    return send(res, 200, synesthesia);
+  }
+  if (req.method === "POST" && p === "/api/rehearse") {
+    const body = await readJson(req);
+    const stored = plans.get(String(body.planId));
+    if (!stored) throw new core.WeaveError(404, "PLAN_NOT_FOUND", "plan not found; compile it first");
+    const personas = buildAgentPersonas(stored.analysis.communities, stored.analysis);
+    const simulation = simulateRehearsal({
+      plan: stored.plan,
+      analysis: stored.analysis,
+      personas,
+    });
+    return send(res, 200, { personas, simulation });
+  }
+  if (req.method === "POST" && p === "/api/rooms") {
+    const body = await readJson(req);
+    const room = createRoom({ title: body.title, brief: body.brief });
+    return send(res, 201, room);
+  }
+  const roomStreamMatch = p.match(/^\/api\/rooms\/([a-zA-Z0-9_-]+)\/stream$/);
+  if (req.method === "GET" && roomStreamMatch) {
+    const ok = subscribeToRoom(roomStreamMatch[1], res);
+    if (!ok) throw new core.WeaveError(404, "ROOM_NOT_FOUND", "room not found");
+    return;
+  }
+  const roomJoinMatch = p.match(/^\/api\/rooms\/([a-zA-Z0-9_-]+)\/join$/);
+  if (req.method === "POST" && roomJoinMatch) {
+    const body = await readJson(req);
+    const attendee = await submitAttendeeSeeds({
+      roomId: roomJoinMatch[1],
+      nickname: body.nickname,
+      seeds: body.seeds,
+      adapter: adapterFor("live"),
+    });
+    return send(res, 200, { success: true, attendee });
+  }
+  const roomSimMatch = p.match(/^\/api\/rooms\/([a-zA-Z0-9_-]+)\/simulate$/);
+  if (req.method === "POST" && roomSimMatch) {
+    const demoAttendees = [
+      { nickname: "Aria (Alt Rock)", seeds: [{ id: "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C", name: "Radiohead" }, { id: "2AE9B79B-864F-4C23-BF36-6705D172F509", name: "Pink Floyd" }] },
+      { nickname: "Leo (Sci-Fi / Cinema)", seeds: [{ id: "37DB91E9-9EE1-4C98-AA01-0AF0C34274EC", name: "Hans Zimmer" }, { id: "012EF80C-B187-4ECB-9C3D-9CA5228B503C", name: "Daft Punk" }] },
+      { nickname: "Maya (Electronic / Club)", seeds: [{ id: "012EF80C-B187-4ECB-9C3D-9CA5228B503C", name: "Daft Punk" }, { id: "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C", name: "Radiohead" }] },
+    ];
+    for (const a of demoAttendees) {
+      await submitAttendeeSeeds({
+        roomId: roomSimMatch[1],
+        nickname: a.nickname,
+        seeds: a.seeds,
+        adapter: adapterFor("live"),
+      });
+    }
+    const r = getRoom(roomSimMatch[1]);
+    return send(res, 200, { success: true, attendeeCount: r?.attendees?.length || 0 });
+  }
+  const roomGetMatch = p.match(/^\/api\/rooms\/([a-zA-Z0-9_-]+)$/);
+  if (req.method === "GET" && roomGetMatch) {
+    const room = getRoom(roomGetMatch[1]);
+    if (!room) throw new core.WeaveError(404, "ROOM_NOT_FOUND", "room not found");
+    return send(res, 200, room);
   }
   throw new core.WeaveError(404, "NOT_FOUND", "no such route");
 }

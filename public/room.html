@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WEAVE · Room Pulse</title>
+<style>
+:root{--bg:#080a0f;--panel:#121622;--line:#262d40;--text:#eef2f9;--muted:#94a3b8;--violet:#8b5cf6;--amber:#f59e0b;--teal:#06b6d4;--ok:#10b981;--bad:#f43f5e;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(900px 500px at 50% -10%,#1e144a 0%,transparent 70%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px}
+.container{max-width:540px;margin:0 auto;display:grid;gap:16px}
+header{text-align:center;padding:12px 0}
+.wordmark{font-size:28px;font-weight:900;letter-spacing:.15em;background:linear-gradient(90deg,var(--violet),var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent}
+.subtitle{color:var(--muted);font-size:14px;margin-top:4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+h2{font-size:17px;margin:0 0 10px;font-weight:700}
+label{display:grid;gap:6px;font-size:13px;color:var(--muted);margin-bottom:12px}
+input{font:inherit;color:var(--text);background:#0a0c13;border:1px solid #333d54;border-radius:10px;padding:9px 12px;width:100%}
+input:focus{outline:2px solid var(--violet);border-color:var(--violet)}
+button{font:inherit;cursor:pointer;border-radius:10px;padding:10px 14px;border:0;font-weight:700;transition:transform .1s,opacity .2s}
+button:active{transform:scale(0.98)}
+button.primary{background:linear-gradient(90deg,var(--violet),#a855f7);color:#fff;width:100%;margin-top:8px}
+button.primary:hover{opacity:0.95}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.pill.live{border-color:var(--ok);color:var(--ok);background:rgba(16,185,129,0.1)}
+.seed-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px}
+.seed-chip{background:#1a2030;border:1px solid #2d374d;border-radius:8px;padding:6px 10px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.seed-chip button{background:none;color:var(--muted);padding:0;font-size:16px}
+.status-box{border:1px solid var(--ok);background:rgba(16,185,129,0.08);border-radius:12px;padding:12px;text-align:center;color:#6ee7b7;display:none}
+.search-results{list-style:none;margin:0;padding:0;display:grid;gap:6px;margin-top:6px}
+.search-results li{display:flex;justify-content:space-between;align-items:center;background:#0d101a;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+.search-results button{background:var(--violet);color:#fff;padding:3px 8px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="wordmark">WEAVE ROOM PULSE</div>
+    <div class="subtitle">Anonymously submit your cultural tastes to shape collective resonance.</div>
+    <div style="margin-top:8px;"><span class="pill live" id="roomPill">Connecting to Room...</span></div>
+  </header>
+
+  <section class="card" id="joinCard">
+    <h2>Join the Collective Taste Space</h2>
+    <label>
+      Your Nickname (optional)
+      <input type="text" id="nicknameInput" placeholder="e.g. Alex, CyberFan, Anonymous" maxlength="30">
+    </label>
+
+    <label>
+      Search & Add Your 2 Favorite Artists / Influences
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="searchInput" placeholder="e.g. Radiohead, Hans Zimmer, Kendrick">
+        <button id="searchBtn" style="background:#222a3d;color:var(--text);padding:8px 14px;">Search</button>
+      </div>
+      <ul class="search-results" id="searchResults"></ul>
+    </label>
+
+    <div id="selectedSeeds" style="margin-top:10px;"></div>
+
+    <button class="primary" id="submitBtn">Broadcast My Taste to Room</button>
+  </section>
+
+  <div class="status-box" id="successBox">
+    <strong>✨ Taste Vector Received!</strong>
+    <p style="margin:4px 0 0;font-size:13px;color:var(--muted);">Your cultural anchors are now dynamically weaving into the room's collective resonance.</p>
+  </div>
+</div>
+
+<script type="module">
+  const params = new URLSearchParams(window.location.search);
+  const roomId = params.get("room") || "room-live";
+  document.getElementById("roomPill").textContent = `Connected: ${roomId}`;
+
+  let selectedSeeds = [];
+
+  const renderSeeds = () => {
+    const box = document.getElementById("selectedSeeds");
+    box.innerHTML = selectedSeeds.map((s, idx) => `
+      <div class="seed-chip" style="margin-bottom:6px;">
+        <span><strong>${s.name}</strong></span>
+        <button data-remove="${idx}">×</button>
+      </div>
+    `).join("");
+  };
+
+  document.getElementById("selectedSeeds").addEventListener("click", (e) => {
+    const idx = e.target.dataset.remove;
+    if (idx !== undefined) {
+      selectedSeeds.splice(Number(idx), 1);
+      renderSeeds();
+    }
+  });
+
+  const search = async () => {
+    const q = document.getElementById("searchInput").value.trim();
+    if (!q) return;
+    try {
+      const res = await fetch(`/api/entities/search?q=${encodeURIComponent(q)}&mode=live`);
+      const data = await res.json();
+      const list = document.getElementById("searchResults");
+      list.innerHTML = (data.items || []).slice(0, 4).map(it => `
+        <li>
+          <span>${it.name}</span>
+          <button data-add-id="${it.id}" data-add-name="${encodeURIComponent(it.name)}">+ Add</button>
+        </li>
+      `).join("");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  document.getElementById("searchBtn").addEventListener("click", search);
+  document.getElementById("searchInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); search(); } });
+
+  document.getElementById("searchResults").addEventListener("click", (e) => {
+    const id = e.target.dataset.addId;
+    const name = decodeURIComponent(e.target.dataset.addName || "");
+    if (id && name) {
+      if (selectedSeeds.length >= 3) {
+        alert("Maximum 3 seeds per attendee.");
+        return;
+      }
+      if (!selectedSeeds.some(s => s.id === id)) {
+        selectedSeeds.push({ id, name, provenance: "qloo-live" });
+        renderSeeds();
+      }
+      document.getElementById("searchResults").innerHTML = "";
+      document.getElementById("searchInput").value = "";
+    }
+  });
+
+  document.getElementById("submitBtn").addEventListener("click", async () => {
+    if (selectedSeeds.length < 1) {
+      alert("Please search and select at least 1 artist/seed.");
+      return;
+    }
+    const nickname = document.getElementById("nicknameInput").value.trim() || "Anonymous Attendee";
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/join`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ nickname, seeds: selectedSeeds })
+      });
+      if (res.ok) {
+        document.getElementById("joinCard").style.display = "none";
+        document.getElementById("successBox").style.display = "block";
+      } else {
+        alert("Could not submit seeds. Please try again.");
+      }
+    } catch (e) {
+      alert("Network error.");
+    }
+  });
+</script>
+</body>
+</html>

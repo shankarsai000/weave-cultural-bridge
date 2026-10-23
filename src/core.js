@@ -31,7 +31,7 @@ const fail = (message) => {
   throw new WeaveError(400, "VALIDATION_FAILED", message);
 };
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
-const round4 = (n) => Math.round(n * 10000) / 10000;
+export const round4 = (n) => Math.round(n * 10000) / 10000;
 const sumBy = (xs, f) => xs.reduce((s, x) => s + f(x), 0);
 const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
 const byIdAsc = (a, b) => (a < b ? -1 : a > b ? 1 : 0);

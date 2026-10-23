@@ -52,6 +52,7 @@
     communities: presetCommunities(),
     search: {},
     analysis: null, picked: new Set(), focus: null, plan: null,
+    synesthesia: null, rehearsal: null, room: null,
     error: "", notice: "", busy: false, baseline: false, exportFmt: "md",
   };
 
@@ -258,13 +259,164 @@
         </div>`
       : "";
 
+    const synesthesiaBox = synesthesiaView();
+
     return `<section class="card"><h2>3 · Bridge map</h2>${inspector}
       <svg viewBox="0 0 760 ${H}" role="img" aria-label="Communities linked to candidate entities. Amber edges mark bridges.">${edges}${comms}${nodes}</svg>
       ${evidence}
       ${ladders}
+      ${synesthesiaBox}
       ${tagCloud}
       <details open style="margin-top:16px;"><summary class="muted">Table view (accessible alternative)</summary>
       <table><thead><tr><th>Candidate</th><th>Observed ranks</th><th>Coverage</th><th>Score</th><th>Plan</th></tr></thead><tbody>${rows}</tbody></table></details></section>`;
+  };
+
+  const synesthesiaView = () => {
+    if (!S.synesthesia) {
+      return `<div style="margin-top:16px;">
+        <button class="primary btn-sm" data-action="synesthesia" ${S.busy ? "disabled" : ""}>
+          ✨ Discover 360° Synesthetic Triad (Sound + Cinema + Gastronomy)
+        </button>
+      </div>`;
+    }
+    const st = S.synesthesia.sensoryTriad;
+    const tagList = (st.collectiveTags || []).map((t) => `<span class="tag-badge">${esc(t)}</span>`).join("");
+    return `<div style="margin-top:20px;background:#0d111d;border:1px solid #312e81;border-radius:14px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <h3 style="color:var(--amber);margin:0;">360° Synesthetic Cultural Blueprint</h3>
+        <span class="pill ok">Cross-Domain Qloo AI</span>
+      </div>
+      <p class="muted" style="margin:4px 0 10px;">Empirically matched sound, visual aesthetics, and brand/culinary pairings for these communities:</p>
+      <div class="triad-grid">
+        <div class="triad-card">
+          <h4>🎵 Sonic Architecture</h4>
+          <div class="name">${esc(st.sonic?.name || "Ambient Progression")}</div>
+          <p class="muted" style="font-size:12px;margin:0;">Musical bridge connecting primary taste vectors</p>
+        </div>
+        <div class="triad-card">
+          <h4>🎬 Cinematic & Visuals</h4>
+          <div class="name">${esc(st.visual?.name || "Atmospheric Visuals")}</div>
+          <p class="muted" style="font-size:12px;margin:0;">Stage projection, aesthetic lighting & cinematography</p>
+        </div>
+        <div class="triad-card">
+          <h4>🍸 Brand & Gastronomy</h4>
+          <div class="name">${esc(st.gastronomic?.name || "Artisan Pop-Up")}</div>
+          <p class="muted" style="font-size:12px;margin:0;">Curated food/beverage activation & sponsor alignment</p>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <span class="muted" style="font-size:12px;">Collective Latent Attributes: </span>
+        ${tagList}
+      </div>
+    </div>`;
+  };
+
+  const rehearsalView = () => {
+    if (!S.rehearsal) {
+      return `<div class="row" style="margin-top:12px;">
+        <button class="primary" data-action="rehearse" ${S.busy ? "disabled" : ""}>
+          🎭 Run Autonomous Audience Rehearsal & ROI Simulation
+        </button>
+      </div>`;
+    }
+    const r = S.rehearsal.simulation;
+    const ca = r.commercialArbitrage;
+    const personaCards = r.critiques
+      .map(
+        (c) => `<div class="critique-box">
+        <strong>${esc(c.personaName)}</strong> (Satisfaction: ${Math.round(c.satisfactionRatio * 100)}%):
+        <p style="margin:4px 0 0;color:#cbd5e1;">${esc(c.critique)}</p>
+      </div>`,
+      )
+      .join("");
+
+    const curveRows = r.segmentAudits
+      .map((s) => {
+        const pct = Math.round(s.collectiveResonance * 100);
+        const fillCls = s.isFrictionZone ? "friction" : s.isResonancePeak ? "harmonic" : "normal";
+        return `<div class="curve-row">
+        <span>${esc(s.title.slice(0, 15))}...</span>
+        <div class="curve-bar-bg" title="${esc(s.notes)}">
+          <div class="curve-bar-fill ${fillCls}" style="width:${pct}%"></div>
+        </div>
+        <span style="text-align:right;font-weight:700;">${pct}%</span>
+      </div>`;
+      })
+      .join("");
+
+    return `<div style="margin-top:20px;background:#0d111d;border:1px solid #4338ca;border-radius:14px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <h3 style="color:var(--violet);margin:0;">Audience Rehearsal & Commercial Arbitrage</h3>
+        <span class="pill ok">Agent Simulation Complete</span>
+      </div>
+      <div class="arbitrage-metrics">
+        <div class="metric-box">
+          <div class="val">${r.overallResonancePercent}%</div>
+          <div class="lbl">Collective Resonance</div>
+        </div>
+        <div class="metric-box">
+          <div class="val">${ca.currency} ${ca.culturalWasteAvoided.toLocaleString()}</div>
+          <div class="lbl">Cultural Misallocation Avoided</div>
+        </div>
+        <div class="metric-box">
+          <div class="val">${r.retentionIndex}%</div>
+          <div class="lbl">Audience Retention Index</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <h4 style="margin:0 0 8px;font-size:13px;color:var(--muted);">Minute-by-Minute Collective Flow & Friction Curve:</h4>
+        ${curveRows}
+      </div>
+      <div style="margin-top:14px;">
+        <h4 style="margin:0 0 6px;font-size:13px;color:var(--muted);">Autonomous Community Agent Critiques:</h4>
+        ${personaCards}
+      </div>
+    </div>`;
+  };
+
+  const roomPulseView = () => {
+    const r = S.room;
+    if (!r) {
+      return `<section class="card" style="margin-top:16px;">
+        <h2>5 · Real-time Room Pulse (Audience Telepathy)</h2>
+        <p class="muted">Let attendees or judges scan a code and submit cultural seeds. WEAVE dynamically weaves the room's tastes in real time.</p>
+        <button class="primary btn-sm" data-action="open-room">📡 Open Live Audience Room</button>
+      </section>`;
+    }
+    const attendees = r.attendees || [];
+    return `<section class="card" style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <h2>5 · Real-time Room Pulse (${esc(r.id)})</h2>
+        <span class="pill live">Live SSE Connected · ${attendees.length} Attendees</span>
+      </div>
+      <div class="live-pulse-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <strong>Attendee Join Link:</strong>
+            <a href="/room.html?room=${esc(r.id)}" target="_blank" style="color:var(--teal);margin-left:8px;">/room.html?room=${esc(r.id)}</a>
+          </div>
+          <button class="btn-sm" data-action="simulate-room">⚡ Simulate 3 Live Attendees</button>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:var(--muted);">
+          Latest Attendees in Room:
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+            ${
+              attendees
+                .slice(-6)
+                .map((a) => `<span class="chip">${esc(a.nickname)}</span>`)
+                .join("") || '<span class="muted">Waiting for first submission...</span>'
+            }
+          </div>
+        </div>
+        ${
+          r.latestAnalysis
+            ? `<p style="margin-top:12px;color:var(--ok);font-size:13px;">✓ Live Crowd Telepathy: Emergent taste clusters re-calculated with ${
+                r.latestAnalysis.tagBridges?.length || 0
+              } shared tag bridges!</p>`
+            : ""
+        }
+      </div>
+    </section>`;
   };
 
   const baselineView = () => {
@@ -329,6 +481,7 @@
         <span>${esc(money(v.budgetTotal, v.currency))} of ${esc(money(v.budgetCeiling, v.currency))}</span></p>
       ${notes}
       <div class="row"><button data-action="repair">Suggest repair</button><button data-action="baseline">${S.baseline ? "Hide" : "Compare with"} generic baseline</button></div>
+      ${rehearsalView()}
       ${S.baseline ? baselineView() : ""}
       <details open><summary class="muted">Export run-of-show and evidence</summary>${exportView()}</details></section>`;
   };
@@ -346,7 +499,8 @@
       ${communitiesView()}
       ${S.error ? `<div class="alert" role="alert">${esc(S.error)}</div>` : ""}
       ${S.analysis ? bridgeView() : ""}
-      ${S.plan ? planView() : ""}`;
+      ${S.plan ? planView() : ""}
+      ${roomPulseView()}`;
   };
 
   const planFromPicks = () => {
@@ -469,7 +623,7 @@
     }
   };
 
-  document.addEventListener("click", (ev) => {
+  document.addEventListener("click", async (ev) => {
     const el = ev.target.closest?.("[data-action]");
     if (!el) return;
     const act = el.dataset.action;
@@ -518,6 +672,82 @@
       return render();
     }
     if (act === "download") return void download();
+    if (act === "synesthesia") {
+      S.busy = true;
+      render();
+      try {
+        const brief = validateBrief(S.brief);
+        const communities = validateCommunities(S.communities, S.mode);
+        if (S.mode === "live" && S.server) {
+          S.synesthesia = await post("/api/synesthesia", { mode: "live", brief, communities });
+        } else {
+          S.synesthesia = await runSynestheticAnalysis({
+            adapter: demo,
+            brief,
+            communities,
+            domains: ["sonic", "visual", "gastronomic"],
+          });
+        }
+      } catch (e) {
+        S.error = e.message;
+      }
+      S.busy = false;
+      return render();
+    }
+    if (act === "rehearse") {
+      S.busy = true;
+      render();
+      try {
+        if (!S.plan) throw new Error("Compile a plan first.");
+        const personas = buildAgentPersonas(S.communities, S.analysis);
+        S.rehearsal = {
+          personas,
+          simulation: simulateRehearsal({ plan: S.plan, analysis: S.analysis, personas }),
+        };
+      } catch (e) {
+        S.error = e.message;
+      }
+      S.busy = false;
+      return render();
+    }
+    if (act === "open-room") {
+      try {
+        S.room = S.server ? await post("/api/rooms", { title: S.brief.name || "Live Audience Room", brief: S.brief }) : { id: "room-demo", attendees: [] };
+        if (S.server && !S.pulseSubscribed) {
+          S.pulseSubscribed = true;
+          const es = new EventSource(`/api/rooms/${S.room.id}/stream`);
+          es.addEventListener("attendee-joined", (ev) => {
+            const data = JSON.parse(ev.data);
+            (S.room.attendees ??= []).push({ nickname: data.latestAttendee });
+            render();
+          });
+          es.addEventListener("pulse-updated", (ev) => {
+            const data = JSON.parse(ev.data);
+            S.room.latestAnalysis = data.analysis;
+            render();
+          });
+        }
+      } catch (e) {
+        S.error = e.message;
+      }
+      return render();
+    }
+    if (act === "simulate-room") {
+      try {
+        if (S.server && S.room) {
+          await post(`/api/rooms/${S.room.id}/simulate`, {});
+        } else {
+          (S.room.attendees ??= []).push(
+            { nickname: "Aria (Indie fan)" },
+            { nickname: "Leo (Sci-Fi/Film)" },
+            { nickname: "Maya (Electronic)" },
+          );
+        }
+      } catch (e) {
+        S.error = e.message;
+      }
+      return render();
+    }
   });
 
   document.addEventListener("input", (ev) => {
