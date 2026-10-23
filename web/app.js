@@ -16,6 +16,31 @@
       priority: p.priority,
       seeds: p.seedIds.map((id) => ({ id, name: nameOf(id), provenance: "demo-fixture" })),
     }));
+  const LIVE_PRESET = {
+    brief: { name: "Crossroads Festival 2026", locationLabel: "Bengaluru Amphitheatre", durationMinutes: 120, budgetAmount: 35000, currency: "INR" },
+    communities: [
+      {
+        id: "alt-rock",
+        name: "Alt & Experimental Rock",
+        description: "Fans of progressive textures, complex rhythms, and emotive vocals",
+        priority: 3,
+        seeds: [
+          { id: "70CAE5BF-2F4C-445C-A3E5-4EDACFC3591C", name: "Radiohead", provenance: "qloo-live" },
+          { id: "2AE9B79B-864F-4C23-BF36-6705D172F509", name: "Pink Floyd", provenance: "qloo-live" },
+        ],
+      },
+      {
+        id: "electro-cinema",
+        name: "Cinematic & Electronic Soundscapes",
+        description: "Fans of atmospheric orchestration, synth-pop, and futuristic scores",
+        priority: 2,
+        seeds: [
+          { id: "37DB91E9-9EE1-4C98-AA01-0AF0C34274EC", name: "Hans Zimmer", provenance: "qloo-live" },
+          { id: "012EF80C-B187-4ECB-9C3D-9CA5228B503C", name: "Daft Punk", provenance: "qloo-live" },
+        ],
+      },
+    ],
+  };
   const S = {
     server: false,
     mode: "demo",
@@ -109,11 +134,21 @@
       ${results}</article>`;
   };
 
-  const communitiesView = () => `<section class="card"><h2>2 · Audience constellation</h2>
-    <div class="grid2">${S.communities.map(communityCard).join("")}</div>
-    <div class="row"><button class="primary" data-action="analyze" ${S.busy ? "disabled" : ""}>${
-      S.busy ? "Running…" : S.mode === "live" ? "Run live analysis" : "Run cultural exploration"
-    }</button><span class="muted">${S.mode === "live" ? "Uses Qloo quota through the server." : "Demo fixtures only. Nothing here is Qloo output."}</span></div></section>`;
+  const communitiesView = () => {
+    const liveBanner =
+      S.mode === "live"
+        ? `<div class="preset-banner">
+            <span>⚡ <strong>Quick-Start:</strong> Pre-load verified live seeds (Radiohead, Pink Floyd × Hans Zimmer, Daft Punk)</span>
+            <button class="btn-sm primary" data-action="load-live-preset">Load Live Preset</button>
+          </div>`
+        : "";
+    return `<section class="card"><h2>2 · Audience constellation</h2>
+      ${liveBanner}
+      <div class="grid2">${S.communities.map(communityCard).join("")}</div>
+      <div class="row"><button class="primary" data-action="analyze" ${S.busy ? "disabled" : ""}>${
+        S.busy ? "Running…" : S.mode === "live" ? "Run live analysis" : "Run cultural exploration"
+      }</button><span class="muted">${S.mode === "live" ? "Uses Qloo quota through the server." : "Demo fixtures only. Nothing here is Qloo output."}</span></div></section>`;
+  };
 
   const bridgeView = () => {
     const A = S.analysis;
@@ -166,10 +201,69 @@
          <p class="muted">${f.evidenceRefs.map(esc).join(" · ")}</p>
          <button data-action="exclude" data-id="${esc(f.id)}">Exclude from analysis</button></div>`
       : `<p class="muted">Select a node to inspect its evidence.</p>`;
+    const tagCloud = (A.tagBridges || []).length
+      ? `<div style="margin-top:16px;">
+          <h3>Shared Cultural Tags (${A.tagBridges.length})</h3>
+          <p class="muted">Latent cultural affinities shared across communities in this query set:</p>
+          <div class="tag-cloud">
+            ${A.tagBridges
+              .map(
+                (t) => `<span class="tag-cloud-item" title="Covering: ${t.communitiesCovered.join(", ")}">
+                  <span>${esc(t.name)}</span>
+                  <strong>${Math.round(t.meanPrevalence * 100)}%</strong>
+                </span>`,
+              )
+              .join("")}
+          </div>
+        </div>`
+      : "";
+
+    const ladders = (A.tasteLadders || []).length
+      ? `<div style="margin-top:20px;">
+          <h3>Taste Ladders · Cultural Trajectories (${A.tasteLadders.length})</h3>
+          <p class="muted">Evidence-based 3-step stepping stones transitioning the audience from one community's taste sphere to another:</p>
+          <div class="ladder-box">
+            ${A.tasteLadders
+              .map(
+                (l) => `<div class="ladder-card">
+                  <div class="ladder-header">
+                    <strong>${esc(l.fromCommunity.name)} ➔ ${esc(l.toCommunity.name)}</strong>
+                    <button class="btn-sm" data-action="add-stepping-stone" data-id="${esc(l.rungs[1].entity.id)}">
+                      ${S.picked.has(l.rungs[1].entity.id) ? "Stepping Stone in Plan" : "+ Add Stepping Stone to Plan"}
+                    </button>
+                  </div>
+                  <div class="rungs">
+                    <div class="rung">
+                      <span class="rung-label">Rung 1 · Signature Anchor</span>
+                      <span class="rung-title">${esc(l.rungs[0].entity.name)}</span>
+                      <span class="pill demo" style="font-size:10px">${esc(l.fromCommunity.name)}</span>
+                    </div>
+                    <span class="rung-arrow">➔</span>
+                    <div class="rung stepping">
+                      <span class="rung-label">Rung 2 · Cultural Stepping Stone</span>
+                      <span class="rung-title">${esc(l.rungs[1].entity.name)}</span>
+                      <div class="tag-badges">${(l.rungs[1].connectingTags || []).map((t) => `<span class="tag-badge">${esc(t)}</span>`).join("")}</div>
+                    </div>
+                    <span class="rung-arrow">➔</span>
+                    <div class="rung">
+                      <span class="rung-label">Rung 3 · Signature Anchor</span>
+                      <span class="rung-title">${esc(l.rungs[2].entity.name)}</span>
+                      <span class="pill demo" style="font-size:10px">${esc(l.toCommunity.name)}</span>
+                    </div>
+                  </div>
+                </div>`,
+              )
+              .join("")}
+          </div>
+        </div>`
+      : "";
+
     return `<section class="card"><h2>3 · Bridge map</h2>${inspector}
       <svg viewBox="0 0 760 ${H}" role="img" aria-label="Communities linked to candidate entities. Amber edges mark bridges.">${edges}${comms}${nodes}</svg>
       ${evidence}
-      <details open><summary class="muted">Table view (accessible alternative)</summary>
+      ${ladders}
+      ${tagCloud}
+      <details open style="margin-top:16px;"><summary class="muted">Table view (accessible alternative)</summary>
       <table><thead><tr><th>Candidate</th><th>Observed ranks</th><th>Coverage</th><th>Score</th><th>Plan</th></tr></thead><tbody>${rows}</tbody></table></details></section>`;
   };
 
@@ -383,6 +477,18 @@
     const cid = el.dataset.c;
     if (act === "analyze") return void analyze();
     if (act === "mode") return setMode(el.dataset.mode);
+    if (act === "load-live-preset") {
+      S.brief = { ...S.brief, ...LIVE_PRESET.brief };
+      S.communities = JSON.parse(JSON.stringify(LIVE_PRESET.communities));
+      S.notice = "Loaded verified live preset (Radiohead, Pink Floyd × Hans Zimmer, Daft Punk). Click 'Run live analysis' below!";
+      return render();
+    }
+    if (act === "add-stepping-stone") {
+      S.picked.add(id);
+      S.focus = id;
+      planFromPicks();
+      return render();
+    }
     if (act === "search") return void runSearch(cid);
     if (act === "confirm") return addSeed(cid, id);
     if (act === "drop-seed") {

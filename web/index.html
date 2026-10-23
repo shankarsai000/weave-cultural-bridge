@@ -77,7 +77,25 @@ pre{white-space:pre-wrap;overflow-x:auto;background:#0e1119;border:1px solid var
 .inspector{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin:12px 0}
 .inspector p{margin:4px 0}
 .exports pre{margin-top:10px}
-@media (max-width:640px){.seg-row{grid-template-columns:1fr auto}.wordmark{font-size:28px}}
+.ladder-box{display:grid;gap:12px;margin-top:12px}
+.ladder-card{background:#0e1119;border:1px solid #2a3044;border-radius:14px;padding:14px;display:grid;gap:10px}
+.ladder-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.rungs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rung{background:#151923;border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:grid;gap:2px;flex:1;min-width:140px}
+.rung.stepping{border-color:var(--amber);background:rgba(245,184,75,0.06)}
+.rung-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)}
+.rung.stepping .rung-label{color:var(--amber);font-weight:700}
+.rung-title{font-size:14px;font-weight:600}
+.rung-arrow{color:var(--muted);font-size:18px}
+.tag-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.tag-badge{background:#1d2232;border:1px solid #363e54;color:#cbd5e1;border-radius:6px;padding:1px 6px;font-size:11px}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag-cloud-item{background:#111520;border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:12px;display:inline-flex;align-items:center;gap:6px}
+.tag-cloud-item strong{color:var(--amber)}
+.preset-banner{background:linear-gradient(90deg,#1c173b,#162338);border:1px solid #4338ca;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.preset-banner span{font-size:13px}
+.btn-sm{padding:4px 10px;font-size:12px;border-radius:8px}
+@media (max-width:640px){.seg-row{grid-template-columns:1fr auto}.wordmark{font-size:28px}.rungs{flex-direction:column}.rung-arrow{transform:rotate(90deg)}}
 @media (prefers-reduced-motion:no-preference){.edge-bridge{transition:opacity .2s}}
 </style>
 </head>
