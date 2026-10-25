@@ -1417,9 +1417,24 @@ export function simulateRehearsal({ plan, analysis, personas }) {
       : "";
 
     const synesthesiaBox = synesthesiaView();
+    const tasteMapCanvas = `
+      <div style="margin-top:16px;background:#0d111a;border:1px solid var(--line);border-radius:12px;padding:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h3 style="margin:0;font-size:14px;color:var(--teal);">🌌 2D Cultural Distance & Affinity Manifold</h3>
+            <p class="muted" style="margin:2px 0 0;font-size:12px;">Interactive spatial projection of communities and candidate bridges. Size indicates bridge score.</p>
+          </div>
+          <span class="pill ok" style="font-size:11px;">Interactive Taste Map</span>
+        </div>
+        <div style="position:relative;margin-top:8px;">
+          <canvas id="taste-canvas" width="720" height="260" style="width:100%;height:auto;background:#090c14;border-radius:10px;border:1px solid #1e2638;display:block;cursor:crosshair;"></canvas>
+        </div>
+      </div>
+    `;
 
-    return `<section class="card"><h2>3 · Bridge map</h2>${inspector}
+    return `<section class="card"><h2>3 · Bridge map & Cultural Taste Manifold</h2>${inspector}
       <svg viewBox="0 0 760 ${H}" role="img" aria-label="Communities linked to candidate entities. Amber edges mark bridges.">${edges}${comms}${nodes}</svg>
+      ${tasteMapCanvas}
       ${evidence}
       ${ladders}
       ${synesthesiaBox}
@@ -1662,6 +1677,105 @@ export function simulateRehearsal({ plan, analysis, personas }) {
       ${S.analysis ? bridgeView() : ""}
       ${S.plan ? planView() : ""}
       ${roomPulseView()}`;
+    drawTasteCanvas();
+  };
+
+  const drawTasteCanvas = () => {
+    const canvas = $("#taste-canvas");
+    if (!canvas || !S.analysis || typeof canvas.getContext !== "function") return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw coordinate grid lines
+    ctx.strokeStyle = "#161c2c";
+    ctx.lineWidth = 1;
+    for (let x = 40; x < w; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let y = 30; y < h; y += 30) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    const comms = S.analysis.communities || [];
+    const commPos = [
+      { x: 120, y: 70, color: "#8f7ff7", label: comms[0]?.name || "Community 1" },
+      { x: w - 140, y: h - 70, color: "#5eead4", label: comms[1]?.name || "Community 2" },
+      { x: 140, y: h - 60, color: "#fca5a5", label: comms[2]?.name || "Community 3" },
+      { x: w - 130, y: 70, color: "#93c5fd", label: comms[3]?.name || "Community 4" },
+    ];
+
+    // Draw Community Wells
+    comms.forEach((c, idx) => {
+      const pos = commPos[idx] || { x: w / 2, y: h / 2, color: "#8f7ff7", label: c.name };
+      // Radial glow
+      const grad = ctx.createRadialGradient(pos.x, pos.y, 4, pos.x, pos.y, 50);
+      grad.addColorStop(0, "rgba(143, 127, 247, 0.35)");
+      grad.addColorStop(1, "rgba(143, 127, 247, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, 50, 0, Math.PI * 2); ctx.fill();
+
+      // Core
+      ctx.fillStyle = pos.color;
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2); ctx.fill();
+
+      // Label
+      ctx.font = "bold 11px system-ui";
+      ctx.fillStyle = "#eef1f7";
+      ctx.textAlign = "center";
+      ctx.fillText(pos.label, pos.x, pos.y + 20);
+    });
+
+    // Draw Candidate Entities & Bridges
+    const cs = S.analysis.candidates || [];
+    cs.slice(0, 10).forEach((c, i) => {
+      // Interpolate position between covering communities
+      let targetX = w / 2;
+      let targetY = h / 2;
+      const cov = c.communitiesCovered || [];
+      if (cov.length >= 2) {
+        const c1Idx = comms.findIndex((x) => x.id === cov[0]);
+        const c2Idx = comms.findIndex((x) => x.id === cov[1]);
+        const p1 = commPos[c1Idx] || commPos[0];
+        const p2 = commPos[c2Idx] || commPos[1];
+        const ratio = c.bridgeScore || 0.5;
+        targetX = p1.x + (p2.x - p1.x) * 0.5 + (Math.sin(i * 1.5) * 35);
+        targetY = p1.y + (p2.y - p1.y) * 0.5 + (Math.cos(i * 1.5) * 30);
+
+        // Connecting affinity tension lines
+        ctx.strokeStyle = c.isBridge ? "rgba(245, 184, 75, 0.45)" : "rgba(58, 66, 88, 0.3)";
+        ctx.lineWidth = c.isBridge ? 1.5 : 1;
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(targetX, targetY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(p2.x, p2.y); ctx.lineTo(targetX, targetY); ctx.stroke();
+      } else {
+        const cIdx = comms.findIndex((x) => x.id === cov[0]);
+        const p = commPos[cIdx] || commPos[0];
+        targetX = p.x + (Math.sin(i) * 55);
+        targetY = p.y + (Math.cos(i) * 45);
+      }
+
+      // Candidate Node
+      const isPicked = S.picked.has(c.id);
+      const isFocused = S.focus === c.id;
+      const radius = 4 + (c.bridgeScore * 6);
+
+      ctx.fillStyle = c.isBridge ? "#f5b84b" : "#38bdf8";
+      ctx.beginPath(); ctx.arc(targetX, targetY, radius, 0, Math.PI * 2); ctx.fill();
+
+      if (isFocused || isPicked) {
+        ctx.strokeStyle = isFocused ? "#ffffff" : "#5eead4";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Title
+      ctx.font = isFocused ? "bold 11px system-ui" : "10px system-ui";
+      ctx.fillStyle = c.isBridge ? "#fcd34d" : "#94a3b8";
+      ctx.textAlign = "center";
+      ctx.fillText(c.name, targetX, targetY - radius - 3);
+    });
   };
 
   const planFromPicks = () => {
