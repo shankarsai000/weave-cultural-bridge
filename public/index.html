@@ -1707,6 +1707,9 @@ export function simulateRehearsal({ plan, analysis, personas }) {
       { x: w - 130, y: 70, color: "#93c5fd", label: comms[3]?.name || "Community 4" },
     ];
 
+    // Store nodes in S.tasteNodes for mouse hit testing
+    const nodes = [];
+
     // Draw Community Wells
     comms.forEach((c, idx) => {
       const pos = commPos[idx] || { x: w / 2, y: h / 2, color: "#8f7ff7", label: c.name };
@@ -1719,19 +1722,18 @@ export function simulateRehearsal({ plan, analysis, personas }) {
 
       // Core
       ctx.fillStyle = pos.color;
-      ctx.beginPath(); ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, 9, 0, Math.PI * 2); ctx.fill();
 
       // Label
       ctx.font = "bold 11px system-ui";
       ctx.fillStyle = "#eef1f7";
       ctx.textAlign = "center";
-      ctx.fillText(pos.label, pos.x, pos.y + 20);
+      ctx.fillText(pos.label, pos.x, pos.y + 22);
     });
 
     // Draw Candidate Entities & Bridges
     const cs = S.analysis.candidates || [];
-    cs.slice(0, 10).forEach((c, i) => {
-      // Interpolate position between covering communities
+    cs.slice(0, 12).forEach((c, i) => {
       let targetX = w / 2;
       let targetY = h / 2;
       const cov = c.communitiesCovered || [];
@@ -1740,12 +1742,11 @@ export function simulateRehearsal({ plan, analysis, personas }) {
         const c2Idx = comms.findIndex((x) => x.id === cov[1]);
         const p1 = commPos[c1Idx] || commPos[0];
         const p2 = commPos[c2Idx] || commPos[1];
-        const ratio = c.bridgeScore || 0.5;
-        targetX = p1.x + (p2.x - p1.x) * 0.5 + (Math.sin(i * 1.5) * 35);
-        targetY = p1.y + (p2.y - p1.y) * 0.5 + (Math.cos(i * 1.5) * 30);
+        targetX = p1.x + (p2.x - p1.x) * 0.5 + (Math.sin(i * 1.5) * 38);
+        targetY = p1.y + (p2.y - p1.y) * 0.5 + (Math.cos(i * 1.5) * 32);
 
-        // Connecting affinity tension lines
-        ctx.strokeStyle = c.isBridge ? "rgba(245, 184, 75, 0.45)" : "rgba(58, 66, 88, 0.3)";
+        // Tension lines
+        ctx.strokeStyle = c.isBridge ? "rgba(245, 184, 75, 0.45)" : "rgba(58, 66, 88, 0.25)";
         ctx.lineWidth = c.isBridge ? 1.5 : 1;
         ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(targetX, targetY); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(p2.x, p2.y); ctx.lineTo(targetX, targetY); ctx.stroke();
@@ -1756,26 +1757,70 @@ export function simulateRehearsal({ plan, analysis, personas }) {
         targetY = p.y + (Math.cos(i) * 45);
       }
 
-      // Candidate Node
+      // Check if node is dragged
+      if (S.dragNode && S.dragNode.id === c.id) {
+        targetX = S.dragPos.x;
+        targetY = S.dragPos.y;
+      }
+
       const isPicked = S.picked.has(c.id);
       const isFocused = S.focus === c.id;
-      const radius = 4 + (c.bridgeScore * 6);
+      const isHovered = S.hoverNodeId === c.id;
+      const radius = 5 + (c.bridgeScore * 7) + (isHovered ? 3 : 0);
 
-      ctx.fillStyle = c.isBridge ? "#f5b84b" : "#38bdf8";
+      nodes.push({ id: c.id, x: targetX, y: targetY, r: radius, candidate: c });
+
+      ctx.fillStyle = c.isBridge ? (isPicked ? "#fbbf24" : "#f5b84b") : "#38bdf8";
       ctx.beginPath(); ctx.arc(targetX, targetY, radius, 0, Math.PI * 2); ctx.fill();
 
-      if (isFocused || isPicked) {
-        ctx.strokeStyle = isFocused ? "#ffffff" : "#5eead4";
-        ctx.lineWidth = 2;
+      if (isFocused || isPicked || isHovered) {
+        ctx.strokeStyle = isHovered ? "#ffffff" : isPicked ? "#5eead4" : "#818cf8";
+        ctx.lineWidth = isHovered ? 3 : 2;
         ctx.stroke();
       }
 
       // Title
-      ctx.font = isFocused ? "bold 11px system-ui" : "10px system-ui";
+      ctx.font = isFocused || isHovered ? "bold 11px system-ui" : "10px system-ui";
       ctx.fillStyle = c.isBridge ? "#fcd34d" : "#94a3b8";
       ctx.textAlign = "center";
-      ctx.fillText(c.name, targetX, targetY - radius - 3);
+      ctx.fillText(c.name, targetX, targetY - radius - 4);
     });
+
+    // Attach canvas interactive listeners once
+    if (!canvas._hasListeners) {
+      canvas._hasListeners = true;
+
+      const getPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (e.clientX - rect.left) * (canvas.width / rect.width),
+          y: (e.clientY - rect.top) * (canvas.height / rect.height)
+        };
+      };
+
+      canvas.addEventListener("mousemove", (e) => {
+        const p = getPos(e);
+        const hit = (S.tasteNodes || []).find((n) => Math.hypot(n.x - p.x, n.y - p.y) <= n.r + 4);
+        const prevHover = S.hoverNodeId;
+        S.hoverNodeId = hit ? hit.id : null;
+        canvas.style.cursor = hit ? "pointer" : "crosshair";
+        if (prevHover !== S.hoverNodeId) drawTasteCanvas();
+      });
+
+      canvas.addEventListener("click", (e) => {
+        const p = getPos(e);
+        const hit = (S.tasteNodes || []).find((n) => Math.hypot(n.x - p.x, n.y - p.y) <= n.r + 6);
+        if (hit) {
+          S.focus = hit.id;
+          if (S.picked.has(hit.id)) S.picked.delete(hit.id);
+          else S.picked.add(hit.id);
+          planFromPicks();
+          render();
+        }
+      });
+    }
+
+    S.tasteNodes = nodes;
   };
 
   const planFromPicks = () => {
