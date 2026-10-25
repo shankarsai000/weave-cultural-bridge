@@ -93,6 +93,12 @@ At live events or during judging, attendees open `/room.html` on their smartphon
 - Streams live SSE events (`attendee-joined`, `pulse-updated`) back to the organizer console.
 - Recalculates collective bridges in real time as the crowd fills the room.
 
+### 6. Agentic Prompt Synthesizer & Intelligent Tradeoff Repair
+Organizers often arrive with informal, unstructured intent. WEAVE features an autonomous natural-language agent pipeline:
+- **Brief Synthesizer (`/api/agent/brief`):** Ingests raw festival prompts (e.g. *"2-hour festival in Bengaluru for 300 students bridging anime gaming and indie folk with ₹30,000 budget"*), extracts duration, budget, capacity, and maps contrasting audience profiles.
+- **Autonomous Tradeoff Solver (`/api/agent/repair`):** When budget or time overruns occur, rather than simply discarding acts, the agent automatically rebalances segment timing and scales production tiers to lean operational models.
+- **Printable Production Call-Sheet (`🖨️`):** One-click printable production run-of-show formatted specifically for backstage stage managers and AV technicians.
+
 ---
 
 ## 📦 Getting Started
@@ -101,20 +107,14 @@ At live events or during judging, attendees open `/room.html` on their smartphon
 - Node.js **22.19.0** or newer (built and tested on Node v22).
 - Zero external runtime dependencies.
 
-### Installation
+### Installation & Test Suite
 
 ```bash
-git clone https://github.com/your-username/weave.git
-cd weave
-npm install
-```
-
-### Running Tests
-
-```bash
+git clone https://github.com/shankarsai000/weave-cultural-bridge.git
+cd weave-cultural-bridge
 npm test
 ```
-*Executes all 27 unit, integration, live-path, and UI tests in ~1.0 second.*
+*Executes all 29 automated tests (core, live double, UI, innovations, agentic parser & repair) in under 1 second.*
 
 ### Running the Live Qloo Smoke Test
 

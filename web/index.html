@@ -109,7 +109,15 @@ pre{white-space:pre-wrap;overflow-x:auto;background:#0e1119;border:1px solid var
 .curve-bar-fill.normal{background:var(--violet)}
 .live-pulse-box{background:linear-gradient(135deg,#12182b,#1a1338);border:1px solid #4f46e5;border-radius:16px;padding:16px;margin-top:14px}
 @media (max-width:640px){.seg-row{grid-template-columns:1fr auto}.wordmark{font-size:28px}.rungs{flex-direction:column}.rung-arrow{transform:rotate(90deg)}.triad-grid{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:no-preference){.edge-bridge{transition:opacity .2s}}
+@media print{
+  body{background:#fff!important;color:#000!important}
+  header,section:not(:has(ol.timeline)),button,input,select,.toggle,.search,.preset-banner,.agent-box{display:none!important}
+  .card{border:1px solid #ccc!important;background:#fff!important;color:#000!important;padding:0!important;box-shadow:none!important}
+  .seg-row{border-bottom:1px solid #ddd!important;border-radius:0!important;color:#000!important}
+  .chip{border:1px solid #000!important;color:#000!important;background:none!important}
+  h2,h3,strong{color:#000!important}
+  .bar{border:1px solid #000!important}
+}
 </style>
 </head>
 <body>

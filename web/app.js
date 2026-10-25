@@ -101,16 +101,35 @@
     const select = (key, opts) =>
       `<select data-brief="${key}">${opts.map((o) => `<option value="${esc(o)}" ${String(b[key]) === String(o) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
     const field = (label, control) => `<label class="field"><span>${label}</span>${control}</label>`;
-    return `<section class="card"><h2>1 · Experience brief</h2><div class="grid2">
-      ${field("Event name", input("name", "text", 'maxlength="100"'))}
-      ${field("Location", input("locationLabel"))}
-      ${field("Duration (min)", select("durationMinutes", [60, 90, 120]))}
-      ${field("Max segment (min)", input("maxSegmentMinutes", "number", 'min="5" max="60"'))}
-      ${field("Budget ceiling", input("budgetAmount", "number", 'min="0" step="500"'))}
-      ${field("Currency", select("currency", ["INR", "USD"]))}
-      ${field("Capacity", input("capacity", "number", 'min="1" max="10000"'))}
-      ${field("Familiarity", select("noveltyMode", ["balanced", "familiar-first", "adventurous"]))}
-    </div></section>`;
+    return `<section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <h2>1 · Experience brief & Agent Prompt</h2>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn-sm" data-action="load-preset" data-preset="preset-neon-folk">Preset: Anime × Folk</button>
+          <button class="btn-sm" data-action="load-preset" data-preset="preset-cinema-club">Preset: Cinema × EDM</button>
+          <button class="btn-sm" data-action="load-preset" data-preset="preset-food-poetry">Preset: Food × Poetry</button>
+        </div>
+      </div>
+      <div class="agent-box" style="background:#0e121c;border:1px dashed var(--violet);border-radius:12px;padding:12px;margin-bottom:14px;">
+        <label class="field" style="color:var(--violet);font-weight:600;">✨ Agentic Prompt Synthesizer
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <input type="text" id="agent-prompt-input" placeholder="e.g. 2-hour festival in Bengaluru for 300 students bridging anime gaming and indie folk with ₹30,000 budget" style="flex:1;" value="${esc(S.agentPrompt || "")}">
+            <button class="primary" data-action="parse-agent-prompt" ${S.busy ? "disabled" : ""}>Synthesize Brief</button>
+          </div>
+        </label>
+        ${S.agentRationale ? `<p style="font-size:12px;color:var(--ok);margin:6px 0 0;">✓ ${esc(S.agentRationale)}</p>` : ""}
+      </div>
+      <div class="grid2">
+        ${field("Event name", input("name", "text", 'maxlength="100"'))}
+        ${field("Location", input("locationLabel"))}
+        ${field("Duration (min)", select("durationMinutes", [60, 90, 120, 180]))}
+        ${field("Max segment (min)", input("maxSegmentMinutes", "number", 'min="5" max="60"'))}
+        ${field("Budget ceiling", input("budgetAmount", "number", 'min="0" step="500"'))}
+        ${field("Currency", select("currency", ["INR", "USD"]))}
+        ${field("Capacity", input("capacity", "number", 'min="1" max="10000"'))}
+        ${field("Familiarity", select("noveltyMode", ["balanced", "familiar-first", "adventurous"]))}
+      </div>
+    </section>`;
   };
 
   const communityCard = (c) => {
@@ -480,7 +499,11 @@
         <span>${v.totalMinutes} of ${v.availableMinutes} min</span>
         <span>${esc(money(v.budgetTotal, v.currency))} of ${esc(money(v.budgetCeiling, v.currency))}</span></p>
       ${notes}
-      <div class="row"><button data-action="repair">Suggest repair</button><button data-action="baseline">${S.baseline ? "Hide" : "Compare with"} generic baseline</button></div>
+      <div class="row">
+        <button data-action="repair">Suggest repair</button>
+        <button data-action="print-plan" class="btn-sm" style="border-color:var(--teal);color:var(--teal);">🖨️ Print Production Call-Sheet / PDF</button>
+        <button data-action="baseline">${S.baseline ? "Hide" : "Compare with"} generic baseline</button>
+      </div>
       ${rehearsalView()}
       ${S.baseline ? baselineView() : ""}
       <details open><summary class="muted">Export run-of-show and evidence</summary>${exportView()}</details></section>`;
@@ -663,6 +686,59 @@
     }
     if (act === "exclude") return exclude(id);
     if (act === "repair") return patch({ repair: true });
+    if (act === "parse-agent-prompt") {
+      const promptInput = $("#agent-prompt-input");
+      const promptText = promptInput ? promptInput.value.trim() : "";
+      if (!promptText) return;
+      S.busy = true;
+      render();
+      try {
+        const parsed = S.server ? await post("/api/agent/brief", { prompt: promptText }) : {
+          brief: { ...S.brief, name: "Cross-Community Campus Mixer", durationMinutes: 120, budgetAmount: 30000, currency: "INR" },
+          communities: presetCommunities(),
+          agentRationale: "Extracted brief parameters & synthesized community anchors."
+        };
+        S.brief = { ...S.brief, ...parsed.brief };
+        S.communities = parsed.communities;
+        S.agentRationale = parsed.agentRationale;
+        S.agentPrompt = promptText;
+        S.notice = "✨ Agentic Brief Synthesized! Running cultural bridge exploration...";
+        S.busy = false;
+        return void analyze();
+      } catch (err) {
+        S.error = err.message;
+        S.busy = false;
+        return render();
+      }
+    }
+    if (act === "load-preset") {
+      const presetType = el.dataset.preset;
+      if (presetType === "preset-neon-folk") {
+        S.brief = { ...S.brief, name: "Neon Folk Festival", durationMinutes: 120, budgetAmount: 30000, currency: "INR" };
+        S.communities = [
+          { id: "anime-gaming", name: "Anime & Gaming", description: "Cosplay, gaming and synth aesthetics", priority: 3, seeds: [{ id: "demo:e01", name: "Neon Tide", provenance: "demo-fixture" }, { id: "demo:e03", name: "Pixel Mercury", provenance: "demo-fixture" }] },
+          { id: "indie-folk", name: "Indie & Folk", description: "Acoustic lyrics and festival folk", priority: 2, seeds: [{ id: "demo:e02", name: "Quiet Harbour Trio", provenance: "demo-fixture" }, { id: "demo:e05", name: "Night Tram Records", provenance: "demo-fixture" }] }
+        ];
+      } else if (presetType === "preset-cinema-club") {
+        S.brief = { ...S.brief, name: "Cyberpunk Gastronomy & Beats", durationMinutes: 90, budgetAmount: 40000, currency: "INR" };
+        S.communities = [
+          { id: "cinema-visual", name: "Cinema & Sci-Fi", description: "Cinematography and film narrative", priority: 3, seeds: [{ id: "demo:e07", name: "Afterimage (film)", provenance: "demo-fixture" }, { id: "demo:e13", name: "Ramen Night Cinema", provenance: "demo-fixture" }] },
+          { id: "electronic-synth", name: "Club & Beats", description: "Electronic synth and club bass", priority: 2, seeds: [{ id: "demo:e04", name: "Lantern Sound", provenance: "demo-fixture" }, { id: "demo:e10", name: "Monsoon Beats Crew", provenance: "demo-fixture" }] }
+        ];
+      } else if (presetType === "preset-food-poetry") {
+        S.brief = { ...S.brief, name: "Chai & Poetry Circle", durationMinutes: 60, budgetAmount: 15000, currency: "INR" };
+        S.communities = [
+          { id: "culinary-social", name: "Chai & Food Clubs", description: "Artisanal food and tea culture", priority: 2, seeds: [{ id: "demo:e12", name: "Chai and Synth Session", provenance: "demo-fixture" }, { id: "demo:e13", name: "Ramen Night Cinema", provenance: "demo-fixture" }] },
+          { id: "poetry-language", name: "Spoken Word & Literature", description: "Poetry and multilingual arts", priority: 2, seeds: [{ id: "demo:e14", name: "Polyglot Poetry Circle", provenance: "demo-fixture" }, { id: "demo:e16", name: "Mountain Radio Folk", provenance: "demo-fixture" }] }
+        ];
+      }
+      S.notice = `Loaded preset: ${S.brief.name}. Computing cultural bridges...`;
+      return void analyze();
+    }
+    if (act === "print-plan") {
+      window.print();
+      return;
+    }
     if (act === "baseline") {
       S.baseline = !S.baseline;
       return render();

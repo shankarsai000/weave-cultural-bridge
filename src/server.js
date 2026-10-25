@@ -12,6 +12,7 @@ import { buildDocument, renderExport } from "./exporters.js";
 import { runSynestheticAnalysis } from "./synesthesia.js";
 import { buildAgentPersonas, simulateRehearsal } from "./rehearsal.js";
 import { createRoom, getRoom, subscribeToRoom, submitAttendeeSeeds, updateRoomPulse } from "./rooms.js";
+import { parseNaturalLanguageBrief, performAgenticPlanRepair } from "./agent.js";
 
 const VERSION = "0.3.0";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -250,6 +251,20 @@ async function handle(req, res, url) {
       personas,
     });
     return send(res, 200, { personas, simulation });
+  }
+  if (req.method === "POST" && p === "/api/agent/brief") {
+    const body = await readJson(req);
+    const parsed = parseNaturalLanguageBrief(body.prompt ?? "");
+    return send(res, 200, parsed);
+  }
+  if (req.method === "POST" && p === "/api/agent/repair") {
+    const body = await readJson(req);
+    const stored = plans.get(String(body.planId));
+    if (!stored) throw new core.WeaveError(404, "PLAN_NOT_FOUND", "plan not found; compile it first");
+    const repairResult = performAgenticPlanRepair({ plan: stored.plan, analysis: stored.analysis });
+    const nextPlan = core.finalize({ analysis: stored.analysis, brief: stored.plan.brief, segments: repairResult.repairedSegments });
+    stored.plan = { planId: body.planId, ...nextPlan, agentActions: repairResult.actionsTaken };
+    return send(res, 200, stored.plan);
   }
   if (req.method === "POST" && p === "/api/rooms") {
     const body = await readJson(req);
