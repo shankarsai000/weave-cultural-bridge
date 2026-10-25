@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: weave-cultural-bridge
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: WEAVE_DEFAULT_MODE
+        value: demo
+      - key: QLOO_TRANSPORT
+        value: harness
+      - key: QLOO_CLI
+        value: qloo
+      - key: WEAVE_LOG
+        value: info
